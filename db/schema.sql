@@ -8,7 +8,16 @@ CREATE TABLE IF NOT EXISTS people (
   email TEXT,
   phone TEXT,
   is_staff INTEGER NOT NULL DEFAULT 0,
+  is_site_lead INTEGER NOT NULL DEFAULT 0,
   email_opt_out INTEGER NOT NULL DEFAULT 0,
+  street1 TEXT,
+  street2 TEXT,
+  city TEXT,
+  state TEXT,
+  postal_code TEXT,
+  country TEXT,
+  year_of_birth INTEGER,
+  tags TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -49,3 +58,26 @@ CREATE TABLE IF NOT EXISTS flags (
 );
 
 CREATE INDEX IF NOT EXISTS idx_flags_person ON flags (person_id, resolved_at);
+
+CREATE TABLE IF NOT EXISTS notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  person_id INTEGER NOT NULL REFERENCES people (id),
+  text TEXT NOT NULL,
+  logged_by TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_notes_person ON notes (person_id, created_at);
+
+-- One row per (person, reward tier) once redeemed. Tiers themselves are a
+-- code constant (lib/rewards.ts), not a table, so they're easy to tune.
+CREATE TABLE IF NOT EXISTS reward_redemptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  person_id INTEGER NOT NULL REFERENCES people (id),
+  tier_id TEXT NOT NULL,
+  redeemed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  logged_by TEXT,
+  UNIQUE (person_id, tier_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reward_redemptions_person ON reward_redemptions (person_id);

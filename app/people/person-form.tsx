@@ -34,9 +34,50 @@ export function PersonForm({
         Phone
         <input name="phone" type="tel" defaultValue={person?.phone ?? ''} />
       </label>
+      <label>
+        Street address
+        <input name="street1" type="text" defaultValue={person?.street1 ?? ''} />
+      </label>
+      <label>
+        Address line 2
+        <input name="street2" type="text" defaultValue={person?.street2 ?? ''} />
+      </label>
+      <label>
+        City
+        <input name="city" type="text" defaultValue={person?.city ?? ''} />
+      </label>
+      <label>
+        State
+        <input name="state" type="text" defaultValue={person?.state ?? ''} />
+      </label>
+      <label>
+        Postal code
+        <input name="postalCode" type="text" defaultValue={person?.postal_code ?? ''} />
+      </label>
+      <label>
+        Country
+        <input name="country" type="text" defaultValue={person?.country ?? 'US'} />
+      </label>
+      <label>
+        Year of birth
+        <input name="yearOfBirth" type="number" defaultValue={person?.year_of_birth ?? ''} />
+      </label>
+      <label>
+        Tags
+        <input
+          name="tags"
+          type="text"
+          placeholder="comma, separated, tags"
+          defaultValue={person?.tags ?? ''}
+        />
+      </label>
       <label className="checkbox-row">
         <input type="checkbox" name="isStaff" defaultChecked={person?.is_staff === 1} />
-        Site lead (staff)
+        Staff
+      </label>
+      <label className="checkbox-row">
+        <input type="checkbox" name="isSiteLead" defaultChecked={person?.is_site_lead === 1} />
+        Site lead (appears in the &quot;Working today&quot; dropdown)
       </label>
       <label className="checkbox-row">
         <input type="checkbox" name="emailOptOut" defaultChecked={person?.email_opt_out === 1} />

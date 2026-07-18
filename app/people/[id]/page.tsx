@@ -3,18 +3,15 @@ import { notFound } from 'next/navigation'
 import { getPerson, getVisitsForPerson } from '@/lib/people'
 import { getVolunteerHours, getFootTraffic, getAchievedMilestones, MILESTONES } from '@/lib/hours'
 import { getActiveFlags } from '@/lib/flags'
-import { getMembershipStatus, getMembershipsForPerson, todayISO } from '@/lib/memberships'
+import { getMembershipStatus, getMembershipsForPerson, todayISO, oneYearFrom } from '@/lib/memberships'
+import { getNotesForPerson } from '@/lib/notes'
+import { getRewardStatuses } from '@/lib/rewards'
 import { CheckInForm } from '../checkin-form'
 import { BannedModal } from '../banned-modal'
 import { FlagAddForm } from '../flag-add-form'
 import { MembershipForm } from '../membership-form'
-import { resolveFlagAction } from '../actions'
-
-function oneYearFrom(dateISO: string): string {
-  const date = new Date(dateISO)
-  date.setFullYear(date.getFullYear() + 1)
-  return date.toISOString().slice(0, 10)
-}
+import { NoteForm } from '../note-form'
+import { resolveFlagAction, redeemRewardAction } from '../actions'
 
 export default async function PersonProfilePage({
   params,
@@ -34,9 +31,19 @@ export default async function PersonProfilePage({
   const warningFlags = activeFlags.filter((f) => f.level !== 'banned')
   const { status: membershipStatus, latest: latestMembership } = getMembershipStatus(person.id)
   const membershipHistory = getMembershipsForPerson(person.id)
+  const notes = getNotesForPerson(person.id)
+  const rewardStatuses = getRewardStatuses(person.id, volunteerHours)
   const today = todayISO()
   const defaultStartDate = today
   const defaultEndDate = oneYearFrom(today)
+
+  const personType = person.is_staff === 1 ? 'Staff' : membershipStatus === 'active' ? 'Member' : 'Patron'
+  const address = [person.street1, person.street2, person.city, person.state, person.postal_code, person.country]
+    .filter(Boolean)
+    .join(', ')
+  const tags = person.tags
+    ? person.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    : []
 
   return (
     <main>
@@ -52,10 +59,23 @@ export default async function PersonProfilePage({
       </div>
 
       <p className="muted">
+        {personType}
+        {' · '}
         {person.email || 'No email'} · {person.phone || 'No phone'}
-        {person.is_staff === 1 && ' · Site lead'}
+        {person.year_of_birth && ` · b. ${person.year_of_birth}`}
+        {person.is_site_lead === 1 && ' · Site lead'}
         {person.email_opt_out === 1 && ' · Opted out of email'}
       </p>
+      {address && <p className="muted">{address}</p>}
+      {tags.length > 0 && (
+        <div className="badge-row">
+          {tags.map((tag) => (
+            <span key={tag} className="badge achieved">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       {[...bannedFlags, ...warningFlags].map((flag) => (
         <div key={flag.id} className={`flag-banner ${flag.level}`}>
@@ -101,6 +121,33 @@ export default async function PersonProfilePage({
       </div>
 
       <section style={{ marginTop: '2rem' }}>
+        <h2>Rewards</h2>
+        <ul className="visit-list">
+          {rewardStatuses.map(({ tier, status, redemption }) => (
+            <li key={tier.id}>
+              {tier.label} ({tier.hours}+ hrs) —{' '}
+              {status === 'locked' && <span className="muted">Locked</span>}
+              {status === 'redeemed' && (
+                <span className="muted">
+                  Redeemed {redemption!.redeemed_at}
+                  {redemption!.logged_by && ` by ${redemption!.logged_by}`}
+                </span>
+              )}
+              {status === 'available' && (
+                <form action={redeemRewardAction} style={{ display: 'inline' }}>
+                  <input type="hidden" name="personId" value={person.id} />
+                  <input type="hidden" name="tierId" value={tier.id} />
+                  <button type="submit" className="btn-primary">
+                    Redeem
+                  </button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
         <h2>Check In</h2>
         <CheckInForm personId={person.id} />
       </section>
@@ -125,6 +172,21 @@ export default async function PersonProfilePage({
             </li>
           ))}
           {membershipHistory.length === 0 && <p className="muted">No membership history.</p>}
+        </ul>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Notes</h2>
+        <NoteForm personId={person.id} />
+        <ul className="visit-list" style={{ marginTop: '1rem' }}>
+          {notes.map((note) => (
+            <li key={note.id}>
+              {note.text}
+              {note.logged_by && <span className="muted"> · {note.logged_by}</span>}
+              <span className="muted"> · {note.created_at}</span>
+            </li>
+          ))}
+          {notes.length === 0 && <p className="muted">No notes yet.</p>}
         </ul>
       </section>
 

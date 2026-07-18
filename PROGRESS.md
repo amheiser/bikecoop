@@ -170,7 +170,153 @@ directly-backdated expired membership (SQLite) and showed "Lapsed — expired
 `<date>`"; the `/memberships/lapsed` page listed only that lapsed person, not
 the active one. Zero console errors.
 
+## Phase 5 — Reports & AI-friendly export (complete)
+
+**Date:** 2026-07-18
+
+### What was built
+
+- **`lib/reports.ts`** — `getPeriodRange` (monthly / quarterly / annual → ISO
+  start/end + a display label), `getReportMetrics` (total visits, unique
+  visitors, volunteer sessions, volunteer hours, new members — first
+  membership `start_date` in period — and lapsed members — latest
+  membership `end_date` in period).
+- **`/reports`** — a GET-form period picker (type/year/month/quarter, always
+  visible, only the relevant fields used server-side — no client JS needed)
+  defaulting to the current month, rendering the six metrics as stat tiles.
+- **`lib/export.ts`** — `getExportRows` (one row per person with
+  `membership_status`, `days_until_or_since_expiry` — positive if still
+  active, negative if lapsed, `total_volunteer_hours`, `current_milestone`,
+  `active_flags` as a comma-joined list of levels, `email_opt_out`) and a
+  small hand-rolled `rowsToCSV` (no new dependency — keeps with CLAUDE.md's
+  "minimal pinned dependencies" rule).
+- **`/export/csv`** and **`/export/json`** — Route Handlers (Next 16's
+  `route.ts` convention) returning the export with `Content-Disposition:
+  attachment` so they download directly; linked as buttons from `/reports`.
+  Protected by the same `proxy.ts` auth gate as every other route — no
+  separate auth check needed inside the handlers.
+- Added "Reports" to the top nav.
+
+### Verified
+
+Typecheck and `npm run build` pass (`/reports`, `/export/csv`,
+`/export/json` all show up in the build output). Browser-driven (Playwright)
+end-to-end: created a person, checked them in as a volunteer, and recorded a
+membership, all "this month" — the default `/reports` view showed 1 total
+visit, 1 unique visitor, 1 volunteer session, 2.5 volunteer hours, 1 new
+member, 0 lapsed members; switching to an unrelated past period (`2023`
+annual) showed all zeros, confirming the date-range filtering actually
+filters. Downloaded both `/export/csv` and `/export/json` through the
+authenticated browser context and confirmed correct headers
+(`Content-Type: text/csv`, `Content-Disposition: attachment; filename=...`)
+and correct computed field values (`membership_status: active`,
+`days_until_or_since_expiry: 365`, etc.). Zero console errors.
+
 ### Not built yet (explicitly out of scope so far)
 
-Reporting/export (Phase 5), Freehub CSV import (Phase 6) — see CLAUDE.md's
-checklist.
+Freehub CSV import (Phase 6) — see CLAUDE.md's checklist. This one needs the
+actual legacy CSV header row from Freehub before the field mapping can be
+finalized (per CLAUDE.md's own note under "Data import").
+
+## Person model enhancement: comprehensive fields + staff/site-lead split (complete)
+
+**Date:** 2026-07-18
+
+Prompted by feedback on the Add Person form ("this needs to be more
+comprehensive") plus a real bug: `is_staff` was doing double duty as both a
+general staff designation *and* the flag that populated the site-lead
+dropdown, which is wrong — most staff are not site leads. Researched by
+cloning the actual legacy Freehub repo (github.com/asalant/freehub, not just
+its wiki) and reading `db/schema.rb`, `app/models/person.rb`, and the person
+views directly, rather than guessing at its field set.
+
+### What was built
+
+- **Split `is_staff` from a new `is_site_lead`** — `is_staff` is now a
+  general profile designation (drives a Freehub-style Staff/Member/Patron
+  label); `is_site_lead` is the narrower flag that actually populates the
+  "Working today" dropdown. `getStaff()` stays; added `getSiteLeads()`.
+- **Added Person fields matching Freehub's model**: full mailing address
+  (`street1`/`street2`/`city`/`state`/`postal_code`/`country`),
+  `year_of_birth`, and free-form comma-separated `tags` (rendered as pill
+  badges on the profile).
+- **Added a `notes` table** and general free-text Notes journal on the
+  profile — timestamped, attributed, never edited/deleted. Distinct from the
+  structured Flags system (Freehub has no ban/watch levels at all, just this
+  kind of general note).
+- **Idempotent migration in `lib/db.ts`** — new `ensureColumn()`/`migrate()`
+  helpers run `ALTER TABLE ... ADD COLUMN` guarded by `PRAGMA table_info`,
+  so the already-deployed Render database picks up the new `people` columns
+  without a manual migration step or downtime. `schema.sql`'s
+  `CREATE TABLE IF NOT EXISTS` alone only covers brand-new databases.
+- Updated `person-form.tsx`, the profile page, and the top-nav site-lead
+  picker accordingly.
+
+### Also surfaced by the research
+
+Freehub tracks a second "service" type, Earn a Bike/Digging Rights, alongside
+membership. Nick wanted this reimagined as an hours-based rewards system
+rather than a straight port — see the "Volunteer-hour rewards" entry below,
+built the same day after a proposal was confirmed.
+
+### Verified
+
+Typecheck and `npm run build` pass. Verified the migration path specifically
+(not just the happy path): hand-built a SQLite DB shaped like the
+*pre-migration* production schema (no `is_site_lead`/address/etc. columns),
+ran `lib/db.ts`'s migration logic against it, and confirmed all new columns
+were added, the `notes` table was created, and the existing row survived
+with safe defaults (`is_site_lead = 0`, address fields `NULL`) rather than
+erroring or dropping data. Browser-driven (Playwright) end-to-end on a fresh
+DB: created a staff-but-not-site-lead person and confirmed they're absent
+from the site-lead dropdown; created a second person with the full field set
+(address, year of birth, tags, staff, site lead) and confirmed they *do*
+appear in the dropdown, and that the profile correctly renders their address,
+tags as badges, and Staff/Site lead labels; added a note and confirmed it
+appears in the notes feed with a timestamp. Zero console errors.
+
+## Volunteer-hour rewards (complete)
+
+**Date:** 2026-07-18
+
+Proposed in conversation (manual redemption vs auto-grant; shop-credit
+ledger now vs later — both resolved in favor of the simpler option) and
+built the same day using Nick's example numbers as the starting config.
+
+### What was built
+
+- **`lib/rewards.ts`** — `REWARD_TIERS` (10 hrs → Free Annual Membership,
+  30 hrs → Earn-a-Bike Eligibility; a plain code array, easy to retune),
+  `getRewardStatuses(personId, hours)` → `locked` / `available` / `redeemed`
+  per tier, `redeemReward`.
+- **`reward_redemptions` table** — one row per redeemed
+  `(person_id, tier_id)`, enforced unique so a tier can't be redeemed twice.
+- **`redeemRewardAction`** (`app/people/actions.ts`) — re-validates
+  eligibility and non-duplication server-side (not just trusting the UI
+  state), then records the redemption; for `free_membership` specifically,
+  also calls the existing `createMembership()` to record a free year,
+  stamped `"<site lead> (redeemed reward)"` in `logged_by` for traceability.
+- **Rewards section on the profile** — one row per tier showing Locked /
+  a "Redeem" button (when available) / "Redeemed `<date>` by `<site lead>`".
+- Moved `oneYearFrom` from a page-local helper into `lib/memberships.ts` so
+  both the profile page and the reward-redemption action could share it.
+
+### Explicitly deferred
+
+An "hours → ongoing shop credit" ledger — a fundamentally different shape of
+feature (a running balance, not a one-time unlock) — per Nick's choice to
+ship the two threshold rewards first and revisit credit later.
+
+### Verified
+
+Typecheck and `npm run build` pass. Browser-driven (Playwright) end-to-end:
+backdated volunteer visits (via SQLite, since check-ins are one-per-day) to
+give a test person exactly 10.0 hours — confirmed "Free Annual Membership"
+showed as available while "Earn-a-Bike" stayed locked; redeemed it and
+confirmed the reward flipped to "Redeemed `<timestamp>`", a real membership
+record appeared in Membership history, and the status banner flipped to
+"Current member"; reloaded and confirmed the Redeem button was gone (can't
+double-redeem); backdated further to 30.0 hours, confirmed Earn-a-Bike
+became available, redeemed it, and confirmed exactly one membership row
+existed throughout (no duplicate-creation bug from re-redeeming or
+re-rendering). Zero console errors.

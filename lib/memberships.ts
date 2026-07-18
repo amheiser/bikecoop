@@ -15,6 +15,12 @@ export function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+export function oneYearFrom(dateISO: string): string {
+  const date = new Date(dateISO)
+  date.setFullYear(date.getFullYear() + 1)
+  return date.toISOString().slice(0, 10)
+}
+
 export function getMembershipsForPerson(personId: number): Membership[] {
   return db
     .prepare('SELECT * FROM memberships WHERE person_id = ? ORDER BY end_date DESC')

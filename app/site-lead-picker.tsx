@@ -5,10 +5,10 @@ import { setSiteLead } from './actions'
 import type { Person } from '@/lib/people'
 
 export function SiteLeadPicker({
-  staff,
+  siteLeads,
   currentId,
 }: {
-  staff: Person[]
+  siteLeads: Person[]
   currentId: number | null
 }) {
   const formRef = useRef<HTMLFormElement>(null)
@@ -23,7 +23,7 @@ export function SiteLeadPicker({
           onChange={() => formRef.current?.requestSubmit()}
         >
           <option value="">— Select site lead —</option>
-          {staff.map((person) => (
+          {siteLeads.map((person) => (
             <option key={person.id} value={person.id}>
               {person.first_name} {person.last_name}
             </option>

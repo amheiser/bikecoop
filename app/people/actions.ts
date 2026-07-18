@@ -7,16 +7,28 @@ import { getSiteLead } from '@/lib/site-lead'
 import { createPerson, updatePerson, checkIn, getPerson } from '@/lib/people'
 import { getVolunteerHours, getCrossedMilestone } from '@/lib/hours'
 import { createFlag, resolveFlag, type FlagLevel } from '@/lib/flags'
-import { createMembership } from '@/lib/memberships'
+import { createMembership, oneYearFrom, todayISO } from '@/lib/memberships'
+import { createNote } from '@/lib/notes'
+import { REWARD_TIERS, getRedemptionsForPerson, redeemReward, type RewardTierId } from '@/lib/rewards'
 
 function readPersonForm(formData: FormData) {
+  const yearOfBirthRaw = String(formData.get('yearOfBirth') ?? '').trim()
   return {
     firstName: String(formData.get('firstName') ?? '').trim(),
     lastName: String(formData.get('lastName') ?? '').trim(),
     email: String(formData.get('email') ?? '').trim() || null,
     phone: String(formData.get('phone') ?? '').trim() || null,
     isStaff: formData.get('isStaff') === 'on',
+    isSiteLead: formData.get('isSiteLead') === 'on',
     emailOptOut: formData.get('emailOptOut') === 'on',
+    street1: String(formData.get('street1') ?? '').trim() || null,
+    street2: String(formData.get('street2') ?? '').trim() || null,
+    city: String(formData.get('city') ?? '').trim() || null,
+    state: String(formData.get('state') ?? '').trim() || null,
+    postalCode: String(formData.get('postalCode') ?? '').trim() || null,
+    country: String(formData.get('country') ?? '').trim() || null,
+    yearOfBirth: yearOfBirthRaw ? Number(yearOfBirthRaw) : null,
+    tags: String(formData.get('tags') ?? '').trim() || null,
   }
 }
 
@@ -127,6 +139,58 @@ export async function addMembershipAction(_prevState: string | undefined, formDa
     endDate,
     loggedBy: siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null,
   })
+
+  revalidatePath(`/people/${personId}`)
+  revalidatePath('/memberships/lapsed')
+}
+
+export async function addNoteAction(_prevState: string | undefined, formData: FormData) {
+  await requireAuth()
+  const personId = Number(formData.get('personId'))
+  const text = String(formData.get('text') ?? '').trim()
+
+  if (!text) {
+    return 'Note text is required.'
+  }
+
+  const siteLead = await getSiteLead()
+  createNote({
+    personId,
+    text,
+    loggedBy: siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null,
+  })
+
+  revalidatePath(`/people/${personId}`)
+}
+
+export async function redeemRewardAction(formData: FormData) {
+  await requireAuth()
+  const personId = Number(formData.get('personId'))
+  const tierId = String(formData.get('tierId') ?? '') as RewardTierId
+
+  const tier = REWARD_TIERS.find((t) => t.id === tierId)
+  if (!tier) return
+
+  const hours = getVolunteerHours(personId)
+  if (hours < tier.hours) return
+
+  const alreadyRedeemed = getRedemptionsForPerson(personId).some((r) => r.tier_id === tierId)
+  if (alreadyRedeemed) return
+
+  const siteLead = await getSiteLead()
+  const loggedByName = siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null
+
+  redeemReward({ personId, tierId, loggedBy: loggedByName })
+
+  if (tier.id === 'free_membership') {
+    const start = todayISO()
+    createMembership({
+      personId,
+      startDate: start,
+      endDate: oneYearFrom(start),
+      loggedBy: loggedByName ? `${loggedByName} (redeemed reward)` : 'Redeemed reward',
+    })
+  }
 
   revalidatePath(`/people/${personId}`)
   revalidatePath('/memberships/lapsed')

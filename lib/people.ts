@@ -7,7 +7,16 @@ export type Person = {
   email: string | null
   phone: string | null
   is_staff: number
+  is_site_lead: number
   email_opt_out: number
+  street1: string | null
+  street2: string | null
+  city: string | null
+  state: string | null
+  postal_code: string | null
+  country: string | null
+  year_of_birth: number | null
+  tags: string | null
   created_at: string
 }
 
@@ -18,6 +27,24 @@ export type Visit = {
   is_volunteer: number
   logged_by: string | null
   created_at: string
+}
+
+export type PersonInput = {
+  firstName: string
+  lastName: string
+  email: string | null
+  phone: string | null
+  isStaff: boolean
+  isSiteLead: boolean
+  emailOptOut: boolean
+  street1: string | null
+  street2: string | null
+  city: string | null
+  state: string | null
+  postalCode: string | null
+  country: string | null
+  yearOfBirth: number | null
+  tags: string | null
 }
 
 export function searchPeople(query: string): Person[] {
@@ -46,53 +73,56 @@ export function getStaff(): Person[] {
     .all() as Person[]
 }
 
-export function createPerson(input: {
-  firstName: string
-  lastName: string
-  email: string | null
-  phone: string | null
-  isStaff: boolean
-  emailOptOut: boolean
-}): number {
+export function getSiteLeads(): Person[] {
+  return db
+    .prepare('SELECT * FROM people WHERE is_site_lead = 1 ORDER BY first_name, last_name')
+    .all() as Person[]
+}
+
+function paramsFromInput(input: PersonInput) {
+  return {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    phone: input.phone,
+    isStaff: input.isStaff ? 1 : 0,
+    isSiteLead: input.isSiteLead ? 1 : 0,
+    emailOptOut: input.emailOptOut ? 1 : 0,
+    street1: input.street1,
+    street2: input.street2,
+    city: input.city,
+    state: input.state,
+    postalCode: input.postalCode,
+    country: input.country,
+    yearOfBirth: input.yearOfBirth,
+    tags: input.tags,
+  }
+}
+
+export function createPerson(input: PersonInput): number {
   const result = db
     .prepare(
-      `INSERT INTO people (first_name, last_name, email, phone, is_staff, email_opt_out)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO people (
+         first_name, last_name, email, phone, is_staff, is_site_lead, email_opt_out,
+         street1, street2, city, state, postal_code, country, year_of_birth, tags
+       ) VALUES (
+         @firstName, @lastName, @email, @phone, @isStaff, @isSiteLead, @emailOptOut,
+         @street1, @street2, @city, @state, @postalCode, @country, @yearOfBirth, @tags
+       )`
     )
-    .run(
-      input.firstName,
-      input.lastName,
-      input.email,
-      input.phone,
-      input.isStaff ? 1 : 0,
-      input.emailOptOut ? 1 : 0
-    )
+    .run(paramsFromInput(input))
   return Number(result.lastInsertRowid)
 }
 
-export function updatePerson(
-  id: number,
-  input: {
-    firstName: string
-    lastName: string
-    email: string | null
-    phone: string | null
-    isStaff: boolean
-    emailOptOut: boolean
-  }
-): void {
+export function updatePerson(id: number, input: PersonInput): void {
   db.prepare(
-    `UPDATE people SET first_name = ?, last_name = ?, email = ?, phone = ?, is_staff = ?, email_opt_out = ?
-     WHERE id = ?`
-  ).run(
-    input.firstName,
-    input.lastName,
-    input.email,
-    input.phone,
-    input.isStaff ? 1 : 0,
-    input.emailOptOut ? 1 : 0,
-    id
-  )
+    `UPDATE people SET
+       first_name = @firstName, last_name = @lastName, email = @email, phone = @phone,
+       is_staff = @isStaff, is_site_lead = @isSiteLead, email_opt_out = @emailOptOut,
+       street1 = @street1, street2 = @street2, city = @city, state = @state,
+       postal_code = @postalCode, country = @country, year_of_birth = @yearOfBirth, tags = @tags
+     WHERE id = @id`
+  ).run({ ...paramsFromInput(input), id })
 }
 
 export function getVisitsForPerson(personId: number): Visit[] {
