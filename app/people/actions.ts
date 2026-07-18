@@ -6,6 +6,7 @@ import { requireAuth } from '@/lib/auth'
 import { getSiteLead } from '@/lib/site-lead'
 import { createPerson, updatePerson, checkIn, getPerson } from '@/lib/people'
 import { getVolunteerHours, getCrossedMilestone } from '@/lib/hours'
+import { createFlag, resolveFlag, type FlagLevel } from '@/lib/flags'
 
 function readPersonForm(formData: FormData) {
   return {
@@ -68,4 +69,39 @@ export async function checkInAction(
 
   const person = getPerson(personId)
   return person ? `🎉 ${person.first_name} just passed ${crossed} hours!` : null
+}
+
+const FLAG_LEVELS: FlagLevel[] = ['banned', 'watch', 'heads_up']
+
+export async function addFlagAction(_prevState: string | undefined, formData: FormData) {
+  await requireAuth()
+  const personId = Number(formData.get('personId'))
+  const level = String(formData.get('level') ?? '') as FlagLevel
+  const note = String(formData.get('note') ?? '').trim()
+
+  if (!FLAG_LEVELS.includes(level)) {
+    return 'Choose a flag level.'
+  }
+  if (!note) {
+    return 'A note explaining the flag is required.'
+  }
+
+  const siteLead = await getSiteLead()
+  createFlag({
+    personId,
+    level,
+    note,
+    loggedBy: siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null,
+  })
+
+  revalidatePath(`/people/${personId}`)
+}
+
+export async function resolveFlagAction(formData: FormData) {
+  await requireAuth()
+  const flagId = Number(formData.get('flagId'))
+  const personId = Number(formData.get('personId'))
+
+  resolveFlag(flagId)
+  revalidatePath(`/people/${personId}`)
 }

@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPerson, getVisitsForPerson } from '@/lib/people'
 import { getVolunteerHours, getFootTraffic, getAchievedMilestones, MILESTONES } from '@/lib/hours'
+import { getActiveFlags } from '@/lib/flags'
 import { CheckInForm } from '../checkin-form'
+import { BannedModal } from '../banned-modal'
+import { FlagAddForm } from '../flag-add-form'
+import { resolveFlagAction } from '../actions'
 
 export default async function PersonProfilePage({
   params,
@@ -17,9 +21,14 @@ export default async function PersonProfilePage({
   const volunteerHours = getVolunteerHours(person.id)
   const footTraffic = getFootTraffic(person.id)
   const achieved = new Set(getAchievedMilestones(volunteerHours))
+  const activeFlags = getActiveFlags(person.id)
+  const bannedFlags = activeFlags.filter((f) => f.level === 'banned')
+  const warningFlags = activeFlags.filter((f) => f.level !== 'banned')
 
   return (
     <main>
+      <BannedModal personName={`${person.first_name} ${person.last_name}`} flags={bannedFlags} />
+
       <div className="page-header">
         <h1>
           {person.first_name} {person.last_name}
@@ -34,6 +43,24 @@ export default async function PersonProfilePage({
         {person.is_staff === 1 && ' · Site lead'}
         {person.email_opt_out === 1 && ' · Opted out of email'}
       </p>
+
+      {[...bannedFlags, ...warningFlags].map((flag) => (
+        <div key={flag.id} className={`flag-banner ${flag.level}`}>
+          <span>
+            {flag.level === 'banned' ? '⛔ Banned' : flag.level === 'watch' ? '⚠️ Watch' : 'ℹ️ Heads up'}
+            {' — '}
+            {flag.note}
+            {flag.logged_by && <span className="muted"> · flagged by {flag.logged_by}</span>}
+          </span>
+          <form action={resolveFlagAction}>
+            <input type="hidden" name="flagId" value={flag.id} />
+            <input type="hidden" name="personId" value={person.id} />
+            <button type="submit" className="btn-secondary">
+              Clear
+            </button>
+          </form>
+        </div>
+      ))}
 
       <div className="stats-row">
         <div className="stat">
@@ -57,6 +84,11 @@ export default async function PersonProfilePage({
       <section style={{ marginTop: '2rem' }}>
         <h2>Check In</h2>
         <CheckInForm personId={person.id} />
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Flags</h2>
+        <FlagAddForm personId={person.id} />
       </section>
 
       <section style={{ marginTop: '2rem' }}>

@@ -83,7 +83,7 @@ header row is provided.
       (list/search, add/edit, profile), visit check-in with volunteer checkbox,
       site-lead dropdown + shared login.
 - [x] Phase 2 — Hours & badges: totals on profile, milestone badges, celebration toast.
-- [ ] Phase 3 — Flags: add/clear UI, blocking modal for banned, banners for others.
+- [x] Phase 3 — Flags: add/clear UI, blocking modal for banned, banners for others.
 - [ ] Phase 4 — Memberships: record/renew, current-vs-lapsed logic, lapsed list.
 - [ ] Phase 5 — Reports & AI-friendly export.
 - [ ] Phase 6 — Freehub CSV import. Before go-live: upgrade Render to Starter,

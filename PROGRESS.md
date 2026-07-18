@@ -98,7 +98,44 @@ hours. Confirmed: celebration message rendered ("🎉 Milestone just passed 5
 hours!"), stats tiles read 5 / 2, and exactly one badge ("5 hrs") was
 highlighted as achieved. Zero console errors.
 
+## Phase 3 — Flags (complete)
+
+**Date:** 2026-07-18
+
+### What was built
+
+- **`lib/flags.ts`** — `getActiveFlags` (unresolved flags for a person),
+  `createFlag`, `resolveFlag` (sets `resolved_at`).
+- **`addFlagAction` / `resolveFlagAction`** (`app/people/actions.ts`) — add a
+  flag (level + required note, stamped with the current site lead) or clear
+  one. Any logged-in volunteer can do either, per CLAUDE.md.
+- **`app/people/flag-add-form.tsx`** — client component (level select + note
+  + `useActionState` for the "note required" validation error).
+- **`app/people/banned-modal.tsx`** — client component: a blocking overlay
+  shown whenever a profile has an active `banned` flag, listing the ban
+  note(s), dismissible only via an "I Acknowledge" button. It re-appears
+  every time the profile is loaded (local `useState`, not persisted) — the
+  "shown when a person is looked up" behavior from CLAUDE.md.
+- **Profile page** now renders `watch`/`heads_up` flags as colored banners
+  (yellow / blue) with an inline "Clear" button, above the stats/badges.
+
+### Also fixed while in the area
+
+Added a show/hide toggle button on the login page's password field
+(`app/login/login-form.tsx`), per user request — a plain `useState` flip
+between `type="password"` and `type="text"`.
+
+### Verified
+
+Typecheck and `npm run build` pass. Browser-driven (Playwright) end-to-end:
+toggled the login password visibility; added a `watch` flag and confirmed
+the yellow banner rendered; added a `banned` flag and confirmed the banner
+appeared *and* reloading the profile re-triggered the blocking modal (i.e.
+it isn't a one-time dismissal); clicked "I Acknowledge" and confirmed the
+modal closed; cleared both flags and confirmed the banner disappeared and
+the modal no longer appears on reload. Zero console errors.
+
 ### Not built yet (explicitly out of scope so far)
 
-Flags (Phase 3), memberships (Phase 4), reporting/export (Phase 5), Freehub
-CSV import (Phase 6) — see CLAUDE.md's checklist.
+Memberships (Phase 4), reporting/export (Phase 5), Freehub CSV import
+(Phase 6) — see CLAUDE.md's checklist.
