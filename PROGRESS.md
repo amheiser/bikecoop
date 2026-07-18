@@ -377,3 +377,46 @@ all three checked in one submission and confirmed the profile showed
 "Current member", a volunteer visit in Visit History, and 2.5 volunteer
 hours; confirmed the Edit form correctly omits the new-person-only
 checkboxes. Zero console errors.
+
+## Simplified new-person form + sample data for testing (complete)
+
+**Date:** 2026-07-18
+
+Nick wanted sign-up and sign-in kept as separate steps (dropped the "Check
+in today" / "...as a volunteer session" checkboxes added in the previous
+fix, keeping only "Start annual membership today"), and asked for sample
+data so he could test the app without hand-creating everything.
+
+### What was built
+
+- **Removed the check-in checkboxes** from the new-person form
+  (`person-form.tsx`) and the corresponding logic from `createPersonAction`.
+  "Start annual membership today" stays — that part of the original ask was
+  correct, just not the check-in bundling.
+- **`lib/seed.ts`** — `seedSampleData()` creates 7 people covering every
+  major state the app models: a bare patron (no membership/visits), an
+  active member with a mixed visit history and a note, a lapsed member, a
+  volunteer just past the 10hr milestone/reward tier, a staff+site-lead
+  volunteer past the 30hr Earn-a-Bike tier (also exercises the site-lead
+  dropdown), a banned person, and a watch-flagged person. All tagged
+  `sample-data` so they're identifiable and safely removable as a group.
+  `clearSampleData()` deletes them and all their dependent rows (visits,
+  memberships, flags, notes, reward redemptions).
+- **"Sample Data" section on `/reports`** — "Load Sample Data" / "Clear
+  Sample Data" buttons calling new server actions in `app/reports/actions.ts`.
+  This runs against whichever database the app is currently pointed at
+  (dev or the live Render deploy) since there's no way for me to seed the
+  production database directly — Nick triggers it himself from the UI.
+
+### Verified
+
+Typecheck and `npm run build` pass. Browser-driven (Playwright) end-to-end:
+confirmed the new-person form no longer shows the check-in checkboxes but
+still has "Start annual membership today"; loaded sample data and confirmed
+all 7 people appear in the list; confirmed the site-lead dropdown includes
+the staff+site-lead sample volunteer; opened her profile and confirmed 32.5
+volunteer hours, both reward tiers showing "Redeem" (available), and
+"Current member" status; opened the banned sample person's profile and
+confirmed the blocking modal fires; confirmed the lapsed sample person shows
+"Lapsed" status; cleared sample data and confirmed all 7 people were gone.
+Zero console errors.

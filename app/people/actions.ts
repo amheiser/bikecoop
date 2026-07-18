@@ -48,14 +48,6 @@ export async function createPersonAction(_prevState: string | undefined, formDat
     createMembership({ personId: id, startDate: start, endDate: oneYearFrom(start), loggedBy: loggedByName })
   }
 
-  if (formData.get('checkInToday') === 'on') {
-    checkIn({
-      personId: id,
-      isVolunteer: formData.get('checkInAsVolunteer') === 'on',
-      loggedBy: loggedByName,
-    })
-  }
-
   revalidatePath('/people')
   revalidatePath('/memberships/lapsed')
   redirect(`/people/${id}`)

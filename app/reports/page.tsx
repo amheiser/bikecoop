@@ -1,4 +1,5 @@
 import { getReportMetrics, getPeriodRange, MONTH_NAMES, type Period, type PeriodType } from '@/lib/reports'
+import { seedSampleDataAction, clearSampleDataAction } from './actions'
 
 export default async function ReportsPage({
   searchParams,
@@ -102,6 +103,27 @@ export default async function ReportsPage({
           <a href="/export/json" className="btn-secondary">
             Download JSON
           </a>
+        </div>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Sample Data</h2>
+        <p className="muted">
+          Adds a handful of fake people (prefixed &quot;Sample&quot;) covering a patron, an
+          active member, a lapsed member, volunteers at different hour tiers, and banned/watch
+          flags — for testing the app. Safe to load and clear as many times as you like.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <form action={seedSampleDataAction}>
+            <button type="submit" className="btn-primary">
+              Load Sample Data
+            </button>
+          </form>
+          <form action={clearSampleDataAction}>
+            <button type="submit" className="btn-secondary">
+              Clear Sample Data
+            </button>
+          </form>
         </div>
       </section>
     </main>

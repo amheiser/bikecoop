@@ -84,20 +84,10 @@ export function PersonForm({
         Opted out of email
       </label>
       {!person && (
-        <>
-          <label className="checkbox-row">
-            <input type="checkbox" name="startMembership" />
-            Start annual membership today
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" name="checkInToday" />
-            Check in today
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" name="checkInAsVolunteer" />
-            …as a volunteer session
-          </label>
-        </>
+        <label className="checkbox-row">
+          <input type="checkbox" name="startMembership" />
+          Start annual membership today
+        </label>
       )}
       {error && <p className="error">{error}</p>}
       <button type="submit" className="btn-primary" disabled={pending}>
