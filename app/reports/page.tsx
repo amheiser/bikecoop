@@ -1,0 +1,109 @@
+import { getReportMetrics, getPeriodRange, MONTH_NAMES, type Period, type PeriodType } from '@/lib/reports'
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string; year?: string; month?: string; quarter?: string }>
+}) {
+  const sp = await searchParams
+  const now = new Date()
+
+  const type: PeriodType =
+    sp.type === 'quarterly' || sp.type === 'annual' ? sp.type : 'monthly'
+  const year = Number(sp.year) || now.getFullYear()
+  const month = Number(sp.month) || now.getMonth() + 1
+  const quarter = Number(sp.quarter) || Math.floor(now.getMonth() / 3) + 1
+
+  const period: Period = { type, year, month, quarter }
+  const { label } = getPeriodRange(period)
+  const metrics = getReportMetrics(period)
+
+  return (
+    <main>
+      <div className="page-header">
+        <h1>Reports</h1>
+      </div>
+
+      <form method="GET" className="stack" style={{ maxWidth: 400 }}>
+        <label>
+          Period type
+          <select name="type" defaultValue={type}>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="annual">Annual</option>
+          </select>
+        </label>
+        <label>
+          Year
+          <input type="number" name="year" defaultValue={year} />
+        </label>
+        <label>
+          Month (used when period type is Monthly)
+          <select name="month" defaultValue={month}>
+            {MONTH_NAMES.map((name, i) => (
+              <option key={name} value={i + 1}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Quarter (used when period type is Quarterly)
+          <select name="quarter" defaultValue={quarter}>
+            <option value={1}>Q1</option>
+            <option value={2}>Q2</option>
+            <option value={3}>Q3</option>
+            <option value={4}>Q4</option>
+          </select>
+        </label>
+        <button type="submit" className="btn-primary">
+          View Report
+        </button>
+      </form>
+
+      <h2 style={{ marginTop: '2rem' }}>{label}</h2>
+      <div className="stats-row">
+        <div className="stat">
+          <span className="value">{metrics.totalVisits}</span>
+          <span className="label">Total visits</span>
+        </div>
+        <div className="stat">
+          <span className="value">{metrics.uniqueVisitors}</span>
+          <span className="label">Unique visitors</span>
+        </div>
+        <div className="stat">
+          <span className="value">{metrics.volunteerSessions}</span>
+          <span className="label">Volunteer sessions</span>
+        </div>
+        <div className="stat">
+          <span className="value">{metrics.volunteerHours}</span>
+          <span className="label">Volunteer hours</span>
+        </div>
+        <div className="stat">
+          <span className="value">{metrics.newMembers}</span>
+          <span className="label">New members</span>
+        </div>
+        <div className="stat">
+          <span className="value">{metrics.lapsedMembers}</span>
+          <span className="label">Lapsed members</span>
+        </div>
+      </div>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>AI-Friendly Export</h2>
+        <p className="muted">
+          One row per person, with computed membership and volunteer-hour fields. Meant to be
+          fed into an external AI tool to draft emails — this app never sends email itself.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <a href="/export/csv" className="btn-primary">
+            Download CSV
+          </a>
+          <a href="/export/json" className="btn-secondary">
+            Download JSON
+          </a>
+        </div>
+      </section>
+    </main>
+  )
+}
