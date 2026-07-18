@@ -36,3 +36,22 @@ export function getCrossedMilestone(hoursBefore: number, hoursAfter: number): nu
   }
   return crossed
 }
+
+export type VolunteerRosterEntry = {
+  id: number
+  first_name: string
+  last_name: string
+  hours: number
+}
+
+export function getVolunteerRoster(): VolunteerRosterEntry[] {
+  return db
+    .prepare(
+      `SELECT p.id, p.first_name, p.last_name, COUNT(*) * ? as hours
+       FROM people p
+       JOIN visits v ON v.person_id = p.id AND v.is_volunteer = 1
+       GROUP BY p.id
+       ORDER BY hours DESC`
+    )
+    .all(HOURS_PER_VOLUNTEER_VISIT) as VolunteerRosterEntry[]
+}

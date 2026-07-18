@@ -31,7 +31,6 @@ export default async function RootLayout({
           <header className="top-bar">
             <nav>
               <Link href="/people">People</Link>
-              <Link href="/memberships/lapsed">Lapsed Members</Link>
               <Link href="/reports">Reports</Link>
             </nav>
             <SiteLeadPicker siteLeads={siteLeads} currentId={siteLead?.id ?? null} />

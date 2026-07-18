@@ -11,8 +11,7 @@ export function FlagAddForm({ personId }: { personId: number }) {
       <input type="hidden" name="personId" value={personId} />
       <label>
         Flag level
-        <select name="level" defaultValue="heads_up">
-          <option value="heads_up">Heads up</option>
+        <select name="level" defaultValue="watch">
           <option value="watch">Watch</option>
           <option value="banned">Banned</option>
         </select>

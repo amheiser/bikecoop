@@ -48,12 +48,8 @@ export type PersonInput = {
 }
 
 export function searchPeople(query: string): Person[] {
+  if (!query.trim()) return []
   const term = `%${query.trim()}%`
-  if (!query.trim()) {
-    return db
-      .prepare('SELECT * FROM people ORDER BY last_name, first_name LIMIT 50')
-      .all() as Person[]
-  }
   return db
     .prepare(
       `SELECT * FROM people

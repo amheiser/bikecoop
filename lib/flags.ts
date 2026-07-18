@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 
-export type FlagLevel = 'banned' | 'watch' | 'heads_up'
+export type FlagLevel = 'banned' | 'watch'
 
 export type Flag = {
   id: number

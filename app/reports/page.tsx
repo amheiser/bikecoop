@@ -1,4 +1,7 @@
+import Link from 'next/link'
 import { getReportMetrics, getPeriodRange, MONTH_NAMES, type Period, type PeriodType } from '@/lib/reports'
+import { getLapsedPeople } from '@/lib/memberships'
+import { getVolunteerRoster, getCurrentMilestone } from '@/lib/hours'
 import { seedSampleDataAction, clearSampleDataAction } from './actions'
 
 export default async function ReportsPage({
@@ -18,6 +21,8 @@ export default async function ReportsPage({
   const period: Period = { type, year, month, quarter }
   const { label } = getPeriodRange(period)
   const metrics = getReportMetrics(period)
+  const lapsed = getLapsedPeople()
+  const volunteers = getVolunteerRoster()
 
   return (
     <main>
@@ -89,6 +94,43 @@ export default async function ReportsPage({
           <span className="label">Lapsed members</span>
         </div>
       </div>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Lapsed Members</h2>
+        <ul className="person-list">
+          {lapsed.map((person) => (
+            <li key={person.id} className="person-row">
+              <span className="name">
+                <Link href={`/people/${person.id}`}>
+                  {person.first_name} {person.last_name}
+                </Link>
+              </span>
+              <span className="muted">Expired {person.latest_end_date}</span>
+            </li>
+          ))}
+          {lapsed.length === 0 && <p className="muted">No lapsed members.</p>}
+        </ul>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Volunteers</h2>
+        <ul className="person-list">
+          {volunteers.map((volunteer) => (
+            <li key={volunteer.id} className="person-row">
+              <span className="name">
+                <Link href={`/people/${volunteer.id}`}>
+                  {volunteer.first_name} {volunteer.last_name}
+                </Link>
+              </span>
+              <span className="muted">
+                {volunteer.hours} hrs
+                {getCurrentMilestone(volunteer.hours) && ` · ${getCurrentMilestone(volunteer.hours)}+ hr milestone`}
+              </span>
+            </li>
+          ))}
+          {volunteers.length === 0 && <p className="muted">No volunteers yet.</p>}
+        </ul>
+      </section>
 
       <section style={{ marginTop: '2rem' }}>
         <h2>AI-Friendly Export</h2>

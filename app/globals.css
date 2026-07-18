@@ -8,8 +8,6 @@
   --danger-bg: #fdecea;
   --watch-bg: #fff4d6;
   --watch-fg: #7a5c00;
-  --heads-up-bg: #e6f0ff;
-  --heads-up-fg: #1a4b8c;
   --muted: #5a5a5a;
 }
 
@@ -329,11 +327,6 @@ button:disabled {
 .flag-banner.watch {
   background: var(--watch-bg);
   color: var(--watch-fg);
-}
-
-.flag-banner.heads_up {
-  background: var(--heads-up-bg);
-  color: var(--heads-up-fg);
 }
 
 .flag-banner form {

@@ -46,10 +46,11 @@ mirrors those fields and adds the more structured Flags system on top.
   shop is only open 6:00–8:30pm so multiple daily visits are impossible).
   `is_volunteer = 1` means the visit was a volunteer session worth exactly **2.5 hours**.
   Total volunteer hours = count(volunteer visits) × 2.5. Foot traffic = count(all visits).
-- **flags** — warnings shown when a person is looked up. Levels: `banned`, `watch`,
-  `heads_up`. `banned` → blocking modal that must be dismissed before proceeding.
-  `watch`/`heads_up` → prominent colored banner on the person's record. Flags persist
-  until manually cleared (`resolved_at` set). Any volunteer can add or clear flags.
+- **flags** — warnings shown when a person is looked up. Levels: `banned`, `watch`.
+  `banned` → blocking modal that must be dismissed before proceeding. `watch` →
+  prominent colored banner on the person's record. Flags persist until manually
+  cleared (`resolved_at` set). Any volunteer can add or clear flags. (Originally had
+  a third level, `heads_up`, functionally identical to `watch` — merged into one.)
 - **notes** — general free-text, timestamped notes on a person (e.g. "great with wheel
   truing, ask him for help"). Distinct from Flags: no levels, no resolution, just a
   running history log. Any volunteer can add one; notes are never edited or deleted.
@@ -72,7 +73,12 @@ change needs the same treatment — a plain `ensureColumn` is not enough on its 
 Computed live from cumulative hours, never stored. Thresholds (hours):
 5, 10, 20, 50, 100, 200, 300, 400, 500+.
 When logging a session pushes someone past a threshold, show an in-app celebration
-(e.g. toast: "🎉 Jane just passed 50 hours!"). Badges display on the person's profile.
+(e.g. toast: "🎉 Jane just passed 50 hours!"). Badges display on the person's profile —
+but only once a person has logged at least one volunteer hour. The Volunteer Hours
+stat, milestone badges, and Rewards section are all hidden for anyone at 0 hours (most
+members/patrons never volunteer) — gated on actual logged hours, not the "Volunteer"
+role checkbox on the person form, so an occasional volunteer who isn't formally
+flagged still gets full credit and visibility once they've logged a session.
 
 ## Volunteer-hour rewards
 
@@ -120,12 +126,20 @@ not bundled into the reward tiers.
 
 ## Reporting & export (Phase 5)
 
+`/reports` is the single hub for all reporting — there is no separate lapsed-members
+page/nav item, it's a section here.
+
 - Periods: monthly, quarterly (Q1–Q4), annual. Metrics: total visits, unique visitors,
   volunteer sessions, volunteer hours, new members, lapsed members.
+- **Lapsed Members** — list of everyone whose latest membership has expired (name +
+  expiry date), reusing `getLapsedPeople()`.
+- **Volunteers** — everyone with any logged volunteer hours, sorted by hours descending
+  (name, hours, current milestone), via `getVolunteerRoster()` in `lib/hours.ts`.
 - "AI-friendly export": one row per person — CSV and JSON — with stable snake_case
   column names and computed fields: membership_status (active/lapsed/none),
   days_until_or_since_expiry, total_volunteer_hours, current_milestone, active_flags,
   email_opt_out. This is fed to external AI tools to draft emails; the app never sends.
+- **Sample Data** — Load/Clear buttons for the test dataset (`lib/seed.ts`).
 
 ## Data import (Phase 6)
 

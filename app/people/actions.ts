@@ -49,7 +49,7 @@ export async function createPersonAction(_prevState: string | undefined, formDat
   }
 
   revalidatePath('/people')
-  revalidatePath('/memberships/lapsed')
+  revalidatePath('/reports')
   redirect(`/people/${id}`)
 }
 
@@ -94,7 +94,7 @@ export async function checkInAction(
   return person ? `🎉 ${person.first_name} just passed ${crossed} hours!` : null
 }
 
-const FLAG_LEVELS: FlagLevel[] = ['banned', 'watch', 'heads_up']
+const FLAG_LEVELS: FlagLevel[] = ['banned', 'watch']
 
 export async function addFlagAction(_prevState: string | undefined, formData: FormData) {
   await requireAuth()
@@ -151,7 +151,7 @@ export async function addMembershipAction(_prevState: string | undefined, formDa
   })
 
   revalidatePath(`/people/${personId}`)
-  revalidatePath('/memberships/lapsed')
+  revalidatePath('/reports')
 }
 
 export async function addNoteAction(_prevState: string | undefined, formData: FormData) {
@@ -203,5 +203,5 @@ export async function redeemRewardAction(formData: FormData) {
   }
 
   revalidatePath(`/people/${personId}`)
-  revalidatePath('/memberships/lapsed')
+  revalidatePath('/reports')
 }

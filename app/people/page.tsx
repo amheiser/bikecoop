@@ -41,7 +41,10 @@ export default async function PeoplePage({
             <CheckInForm personId={person.id} />
           </li>
         ))}
-        {people.length === 0 && <p className="muted">No matches.</p>}
+        {people.length === 0 && q.trim() && <p className="muted">No matches.</p>}
+        {people.length === 0 && !q.trim() && (
+          <p className="muted">Search for a person by name or email to check them in.</p>
+        )}
       </ul>
     </main>
   )

@@ -7,7 +7,6 @@ import { seedSampleData, clearSampleData } from '@/lib/seed'
 function revalidateEverything() {
   revalidatePath('/people')
   revalidatePath('/reports')
-  revalidatePath('/memberships/lapsed')
 }
 
 export async function seedSampleDataAction() {

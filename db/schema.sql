@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_visits_date ON visits (visit_date);
 CREATE TABLE IF NOT EXISTS flags (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   person_id INTEGER NOT NULL REFERENCES people (id),
-  level TEXT NOT NULL CHECK (level IN ('banned', 'watch', 'heads_up')),
+  level TEXT NOT NULL CHECK (level IN ('banned', 'watch')),
   note TEXT,
   logged_by TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

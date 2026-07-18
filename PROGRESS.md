@@ -420,3 +420,58 @@ volunteer hours, both reward tiers showing "Redeem" (available), and
 confirmed the blocking modal fires; confirmed the lapsed sample person shows
 "Lapsed" status; cleared sample data and confirmed all 7 people were gone.
 Zero console errors.
+
+## People-list default state, volunteer-UI visibility, flag merge, Reports hub (complete)
+
+**Date:** 2026-07-18
+
+Nick's feedback after clicking through the sample data, worked from an approved plan
+(`/Users/amheiser/.claude/plans/so-if-the-person-harmonic-newt.md`) with three design
+decisions locked in via `AskUserQuestion` first: gate volunteer UI on actual hours
+(not the Volunteer role flag), merge `watch`/`heads_up` into one level, and fold
+Lapsed Members into a Reports hub alongside a new Volunteers report.
+
+### What was built
+
+- **`/people` no longer defaults to listing everyone.** `searchPeople('')` now
+  returns `[]`; the page shows "Search for a person by name or email to check them
+  in." until a query is typed, and "No matches." only once a search has actually
+  come up empty.
+- **Volunteer Hours stat, milestone badges, and the Rewards section are hidden
+  until a person has logged at least one volunteer hour** (`volunteerHours > 0`),
+  not gated on the "Volunteer" role checkbox — an occasional, unflagged volunteer
+  still gets full credit and visibility once they've logged a session. Foot traffic
+  stays visible for everyone; it's the only stat shown at 0 volunteer hours. The
+  Check-In "Volunteer session" checkbox is unaffected — it stays available for
+  everyone, since that's how hours start.
+- **Merged the `watch` and `heads_up` flag levels into one** (kept as `watch` in
+  the DB/CSS/label — they were functionally identical, just a different color and
+  icon). New `runOnce()` migration `merge_heads_up_into_watch` converts any
+  existing `heads_up` rows; `schema.sql`'s CHECK constraint narrowed for new
+  databases. The flag-add form now offers only Watch / Banned.
+- **Reports is now the single hub for all reporting.** Added `getVolunteerRoster()`
+  to `lib/hours.ts` (everyone with any logged volunteer hours, sorted by hours
+  descending). `/reports` gained "Lapsed Members" and "Volunteers" sections (reusing
+  the existing `getLapsedPeople()`); the standalone `/memberships/lapsed` page and
+  its top-nav link were deleted; `revalidatePath('/memberships/lapsed')` calls
+  scattered across `app/people/actions.ts` and `app/reports/actions.ts` were
+  updated to `revalidatePath('/reports')`.
+
+### Verified
+
+Typecheck and `npm run build` pass (`/memberships/lapsed` confirmed gone from the
+build's route list). Migration correctness verified the same way as the earlier
+site-lead fix: hand-built a SQLite DB with a `heads_up` flag row (simulating
+already-deployed production data), ran the new migration logic against it, confirmed
+the row flipped to `watch`, and confirmed a second `migrate()` run left it unchanged
+(idempotent). Browser-driven (Playwright) end-to-end: empty `/people` search shows
+the new prompt, not a list; loaded sample data and confirmed the 0-hour sample
+people (Larry Lapsed, Patty Patron, Banned Bob, Watchful Wendy) show **only** Foot
+traffic with no Volunteer hours/badges/Rewards, while the >0-hour sample people
+(Vera, Rookie, Mia) still show all three; the flag-level dropdown only offers Watch
+and Banned; Wendy's pre-existing "watch" banner still renders correctly; `/reports`
+shows both new sections with correct data (Larry in Lapsed Members, the three
+volunteers sorted by hours with milestone labels in Volunteers, 0-hour people
+correctly excluded); `/memberships/lapsed` returns 404; the top nav no longer shows
+"Lapsed Members". Zero console errors (aside from the test's own intentional 404
+check).

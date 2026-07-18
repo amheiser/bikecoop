@@ -41,6 +41,12 @@ function migrate(db: Database.Database) {
   runOnce(db, 'backfill_site_lead_from_staff', () => {
     db.exec('UPDATE people SET is_site_lead = 1 WHERE is_staff = 1')
   })
+
+  // watch and heads_up were functionally identical (both just non-blocking
+  // banners) — merged into a single "watch" level.
+  runOnce(db, 'merge_heads_up_into_watch', () => {
+    db.exec("UPDATE flags SET level = 'watch' WHERE level = 'heads_up'")
+  })
 }
 
 function createConnection() {

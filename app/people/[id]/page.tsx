@@ -80,7 +80,7 @@ export default async function PersonProfilePage({
       {[...bannedFlags, ...warningFlags].map((flag) => (
         <div key={flag.id} className={`flag-banner ${flag.level}`}>
           <span>
-            {flag.level === 'banned' ? '⛔ Banned' : flag.level === 'watch' ? '⚠️ Watch' : 'ℹ️ Heads up'}
+            {flag.level === 'banned' ? '⛔ Banned' : '⚠️ Watch'}
             {' — '}
             {flag.note}
             {flag.logged_by && <span className="muted"> · flagged by {flag.logged_by}</span>}
@@ -102,50 +102,56 @@ export default async function PersonProfilePage({
       </div>
 
       <div className="stats-row">
-        <div className="stat">
-          <span className="value">{volunteerHours}</span>
-          <span className="label">Volunteer hours</span>
-        </div>
+        {volunteerHours > 0 && (
+          <div className="stat">
+            <span className="value">{volunteerHours}</span>
+            <span className="label">Volunteer hours</span>
+          </div>
+        )}
         <div className="stat">
           <span className="value">{footTraffic}</span>
           <span className="label">Foot traffic (visits)</span>
         </div>
       </div>
 
-      <div className="badge-row">
-        {MILESTONES.map((threshold) => (
-          <span key={threshold} className={`badge${achieved.has(threshold) ? ' achieved' : ''}`}>
-            {threshold === 500 && achieved.has(500) ? '500+' : threshold} hrs
-          </span>
-        ))}
-      </div>
-
-      <section style={{ marginTop: '2rem' }}>
-        <h2>Rewards</h2>
-        <ul className="visit-list">
-          {rewardStatuses.map(({ tier, status, redemption }) => (
-            <li key={tier.id}>
-              {tier.label} ({tier.hours}+ hrs) —{' '}
-              {status === 'locked' && <span className="muted">Locked</span>}
-              {status === 'redeemed' && (
-                <span className="muted">
-                  Redeemed {redemption!.redeemed_at}
-                  {redemption!.logged_by && ` by ${redemption!.logged_by}`}
-                </span>
-              )}
-              {status === 'available' && (
-                <form action={redeemRewardAction} style={{ display: 'inline' }}>
-                  <input type="hidden" name="personId" value={person.id} />
-                  <input type="hidden" name="tierId" value={tier.id} />
-                  <button type="submit" className="btn-primary">
-                    Redeem
-                  </button>
-                </form>
-              )}
-            </li>
+      {volunteerHours > 0 && (
+        <div className="badge-row">
+          {MILESTONES.map((threshold) => (
+            <span key={threshold} className={`badge${achieved.has(threshold) ? ' achieved' : ''}`}>
+              {threshold === 500 && achieved.has(500) ? '500+' : threshold} hrs
+            </span>
           ))}
-        </ul>
-      </section>
+        </div>
+      )}
+
+      {volunteerHours > 0 && (
+        <section style={{ marginTop: '2rem' }}>
+          <h2>Rewards</h2>
+          <ul className="visit-list">
+            {rewardStatuses.map(({ tier, status, redemption }) => (
+              <li key={tier.id}>
+                {tier.label} ({tier.hours}+ hrs) —{' '}
+                {status === 'locked' && <span className="muted">Locked</span>}
+                {status === 'redeemed' && (
+                  <span className="muted">
+                    Redeemed {redemption!.redeemed_at}
+                    {redemption!.logged_by && ` by ${redemption!.logged_by}`}
+                  </span>
+                )}
+                {status === 'available' && (
+                  <form action={redeemRewardAction} style={{ display: 'inline' }}>
+                    <input type="hidden" name="personId" value={person.id} />
+                    <input type="hidden" name="tierId" value={tier.id} />
+                    <button type="submit" className="btn-primary">
+                      Redeem
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section style={{ marginTop: '2rem' }}>
         <h2>Check In</h2>
