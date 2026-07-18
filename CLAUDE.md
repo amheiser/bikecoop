@@ -82,7 +82,7 @@ header row is provided.
 - [x] Phase 1 — Schema (`db/schema.sql`), connection (`lib/db.ts`), People pages
       (list/search, add/edit, profile), visit check-in with volunteer checkbox,
       site-lead dropdown + shared login.
-- [ ] Phase 2 — Hours & badges: totals on profile, milestone badges, celebration toast.
+- [x] Phase 2 — Hours & badges: totals on profile, milestone badges, celebration toast.
 - [ ] Phase 3 — Flags: add/clear UI, blocking modal for banned, banners for others.
 - [ ] Phase 4 — Memberships: record/renew, current-vs-lapsed logic, lapsed list.
 - [ ] Phase 5 — Reports & AI-friendly export.

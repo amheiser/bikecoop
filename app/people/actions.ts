@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireAuth } from '@/lib/auth'
 import { getSiteLead } from '@/lib/site-lead'
-import { createPerson, updatePerson, checkIn } from '@/lib/people'
+import { createPerson, updatePerson, checkIn, getPerson } from '@/lib/people'
+import { getVolunteerHours, getCrossedMilestone } from '@/lib/hours'
 
 function readPersonForm(formData: FormData) {
   return {
@@ -44,14 +45,27 @@ export async function updatePersonAction(
   redirect(`/people/${id}`)
 }
 
-export async function checkInAction(formData: FormData) {
+export async function checkInAction(
+  _prevState: string | null | undefined,
+  formData: FormData
+): Promise<string | null> {
   await requireAuth()
   const personId = Number(formData.get('personId'))
   const isVolunteer = formData.get('isVolunteer') === 'on'
   const siteLead = await getSiteLead()
 
+  const hoursBefore = isVolunteer ? getVolunteerHours(personId) : 0
+
   checkIn({ personId, isVolunteer, loggedBy: siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null })
 
   revalidatePath('/people')
   revalidatePath(`/people/${personId}`)
+
+  if (!isVolunteer) return null
+
+  const crossed = getCrossedMilestone(hoursBefore, getVolunteerHours(personId))
+  if (!crossed) return null
+
+  const person = getPerson(personId)
+  return person ? `🎉 ${person.first_name} just passed ${crossed} hours!` : null
 }

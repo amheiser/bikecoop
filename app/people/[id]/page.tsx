@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPerson, getVisitsForPerson } from '@/lib/people'
-import { checkInAction } from '../actions'
+import { getVolunteerHours, getFootTraffic, getAchievedMilestones, MILESTONES } from '@/lib/hours'
+import { CheckInForm } from '../checkin-form'
 
 export default async function PersonProfilePage({
   params,
@@ -13,6 +14,9 @@ export default async function PersonProfilePage({
   if (!person) notFound()
 
   const visits = getVisitsForPerson(person.id)
+  const volunteerHours = getVolunteerHours(person.id)
+  const footTraffic = getFootTraffic(person.id)
+  const achieved = new Set(getAchievedMilestones(volunteerHours))
 
   return (
     <main>
@@ -31,18 +35,28 @@ export default async function PersonProfilePage({
         {person.email_opt_out === 1 && ' · Opted out of email'}
       </p>
 
+      <div className="stats-row">
+        <div className="stat">
+          <span className="value">{volunteerHours}</span>
+          <span className="label">Volunteer hours</span>
+        </div>
+        <div className="stat">
+          <span className="value">{footTraffic}</span>
+          <span className="label">Foot traffic (visits)</span>
+        </div>
+      </div>
+
+      <div className="badge-row">
+        {MILESTONES.map((threshold) => (
+          <span key={threshold} className={`badge${achieved.has(threshold) ? ' achieved' : ''}`}>
+            {threshold === 500 && achieved.has(500) ? '500+' : threshold} hrs
+          </span>
+        ))}
+      </div>
+
       <section style={{ marginTop: '2rem' }}>
         <h2>Check In</h2>
-        <form action={checkInAction} className="checkin-form">
-          <input type="hidden" name="personId" value={person.id} />
-          <label className="checkbox-row">
-            <input type="checkbox" name="isVolunteer" />
-            Volunteer session
-          </label>
-          <button type="submit" className="btn-primary">
-            Check In
-          </button>
-        </form>
+        <CheckInForm personId={person.id} />
       </section>
 
       <section style={{ marginTop: '2rem' }}>

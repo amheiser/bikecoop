@@ -247,3 +247,52 @@ button:disabled {
   gap: 0.4rem;
   margin-top: 0.5rem;
 }
+
+.celebration {
+  margin-top: 0.6rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stats-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat .value {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.stat .label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.badge-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.badge {
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.badge.achieved {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}

@@ -57,15 +57,48 @@ this environment) with screenshots and a `console --errors` check:
 
 Zero console/page errors observed.
 
-### Before deploying
+Deployed to Render on 2026-07-18 with real `AUTH_USERNAME` / `AUTH_PASSWORD` /
+`SESSION_SECRET` set in the Render dashboard. Login confirmed working on the
+live site.
 
-- Set real `AUTH_USERNAME`, `AUTH_PASSWORD`, and a strong `SESSION_SECRET` in
-  Render's environment (a throwaway dev-only `.env.local` is gitignored and
-  not committed).
-- `DATABASE_PATH` should be `/var/data/bikecoop.db` once the persistent disk
-  is attached (still Phase 6 per CLAUDE.md's checklist).
+`DATABASE_PATH` should be updated to `/var/data/bikecoop.db` once the
+persistent disk is attached (still Phase 6 per CLAUDE.md's checklist).
 
-### Not built yet (explicitly out of scope for this phase)
+## Phase 2 — Hours & badges (complete)
 
-Hours/badges (Phase 2), flags (Phase 3), memberships (Phase 4), reporting/
-export (Phase 5), Freehub CSV import (Phase 6) — see CLAUDE.md's checklist.
+**Date:** 2026-07-18
+
+### What was built
+
+- **`lib/hours.ts`** — `MILESTONES` (5, 10, 20, 50, 100, 200, 300, 400, 500
+  hours), `getVolunteerHours` (volunteer visit count × 2.5), `getFootTraffic`
+  (total visit count), `getCurrentMilestone`, `getAchievedMilestones`, and
+  `getCrossedMilestone(before, after)` for detecting a threshold crossed by a
+  single check-in. Kept as its own module since Phase 5's export also needs
+  `total_volunteer_hours` and `current_milestone`.
+- **`checkInAction`** now computes volunteer hours before and after the
+  check-in and returns a celebration string (e.g. "🎉 Jane just passed 5
+  hours!") when a threshold is crossed, or `null` otherwise.
+- **`app/people/checkin-form.tsx`** — new client component wrapping the
+  check-in form in `useActionState` so the returned celebration message can
+  be rendered inline; replaces the old plain-HTML check-in forms on both the
+  people list and profile page.
+- **Profile page** now shows volunteer hours and foot traffic as stat tiles,
+  plus a row of badge pills (one per milestone threshold) with achieved ones
+  highlighted in the accent color.
+
+### Verified
+
+Typecheck and `npm run build` pass. Browser-driven (Playwright) end-to-end:
+created a person, backdated one volunteer visit directly in SQLite to bank
+2.5 hours (same-day check-ins upsert onto one `UNIQUE(person_id, visit_date)`
+row, so multiple same-day clicks can't be used to simulate crossing a
+threshold), then checked in as a volunteer today to push the total to 5.0
+hours. Confirmed: celebration message rendered ("🎉 Milestone just passed 5
+hours!"), stats tiles read 5 / 2, and exactly one badge ("5 hrs") was
+highlighted as achieved. Zero console errors.
+
+### Not built yet (explicitly out of scope so far)
+
+Flags (Phase 3), memberships (Phase 4), reporting/export (Phase 5), Freehub
+CSV import (Phase 6) — see CLAUDE.md's checklist.

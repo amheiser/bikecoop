@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { searchPeople } from '@/lib/people'
-import { checkInAction } from './actions'
+import { CheckInForm } from './checkin-form'
 
 export default async function PeoplePage({
   searchParams,
@@ -38,16 +38,7 @@ export default async function PeoplePage({
                 {person.first_name} {person.last_name}
               </Link>
             </span>
-            <form action={checkInAction} className="checkin-form">
-              <input type="hidden" name="personId" value={person.id} />
-              <label className="checkbox-row">
-                <input type="checkbox" name="isVolunteer" />
-                Volunteer session
-              </label>
-              <button type="submit" className="btn-primary">
-                Check In
-              </button>
-            </form>
+            <CheckInForm personId={person.id} />
           </li>
         ))}
         {people.length === 0 && <p className="muted">No matches.</p>}
