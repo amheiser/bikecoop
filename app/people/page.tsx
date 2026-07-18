@@ -38,7 +38,7 @@ export default async function PeoplePage({
                 {person.first_name} {person.last_name}
               </Link>
             </span>
-            <CheckInForm personId={person.id} />
+            <CheckInForm personId={person.id} showVolunteerOption={person.is_staff === 1} />
           </li>
         ))}
         {people.length === 0 && q.trim() && <p className="muted">No matches.</p>}

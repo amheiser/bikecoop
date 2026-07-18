@@ -475,3 +475,41 @@ volunteers sorted by hours with milestone labels in Volunteers, 0-hour people
 correctly excluded); `/memberships/lapsed` returns 404; the top nav no longer shows
 "Lapsed Members". Zero console errors (aside from the test's own intentional 404
 check).
+
+## Restrict the "Volunteer session" check-in checkbox to Volunteer-flagged people (complete)
+
+**Date:** 2026-07-18
+
+Follow-up feedback: the check-in checkbox should only appear for people flagged
+"Volunteer" on their profile (`is_staff = 1`), not for everyone. This reverses part
+of the "gate on actual hours, not the role flag" decision from earlier the same day —
+flagged to Nick before implementing: it means a person now needs to be marked
+"Volunteer" via Edit *before* their first-ever volunteer session can be logged; there's
+no more spontaneous one-off volunteering for someone who isn't flagged. Confirmed and
+implemented as asked.
+
+### What was built
+
+- **`app/people/checkin-form.tsx`** — new required `showVolunteerOption: boolean`
+  prop; the "Volunteer session" checkbox only renders when true. When false, the
+  form is just a plain "Check In" button (an ordinary, non-volunteer visit).
+- **`app/people/page.tsx`** and **`app/people/[id]/page.tsx`** — both `<CheckInForm>`
+  call sites now pass `showVolunteerOption={person.is_staff === 1}`.
+
+Note the resulting edge case (verified, not a bug): a person with real, already-earned
+volunteer hours (e.g. someone who volunteered before ever being flagged "Volunteer")
+still sees their hours/badges/Rewards on their profile — those stay gated on actual
+hours per the earlier decision — but can't log *additional* volunteer sessions until
+someone flags them "Volunteer" via Edit. The two gates (display vs. logging) are now
+intentionally different.
+
+### Verified
+
+Typecheck and `npm run build` pass. Browser-driven (Playwright): every sample person
+without the Volunteer flag (Bob, Larry, Mia, Patty, Wendy) shows no checkbox in
+either the `/people` list rows or their profile's Check In section — just a plain
+Check In button; Vera (flagged Volunteer) still shows the checkbox in both places;
+Rookie (not flagged, but already has 12.5 real hours from seed data) still shows
+Volunteer hours/badges/Rewards on their profile but has no checkbox to log more;
+confirmed a plain check-in for a non-volunteer (Patty) still works and correctly
+does not add to volunteer hours. Zero console errors.

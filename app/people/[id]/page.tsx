@@ -155,7 +155,7 @@ export default async function PersonProfilePage({
 
       <section style={{ marginTop: '2rem' }}>
         <h2>Check In</h2>
-        <CheckInForm personId={person.id} />
+        <CheckInForm personId={person.id} showVolunteerOption={person.is_staff === 1} />
       </section>
 
       <section style={{ marginTop: '2rem' }}>
