@@ -369,3 +369,27 @@ button:disabled {
 .modal-card .visit-list {
   margin-bottom: 1.5rem;
 }
+
+.membership-status {
+  display: inline-block;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  margin-top: 0.75rem;
+  font-weight: 700;
+}
+
+.membership-status.active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.membership-status.lapsed {
+  background: var(--watch-bg);
+  color: var(--watch-fg);
+}
+
+.membership-status.none {
+  background: transparent;
+  color: var(--muted);
+  border: 2px solid var(--border);
+}

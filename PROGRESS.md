@@ -135,7 +135,42 @@ it isn't a one-time dismissal); clicked "I Acknowledge" and confirmed the
 modal closed; cleared both flags and confirmed the banner disappeared and
 the modal no longer appears on reload. Zero console errors.
 
+## Phase 4 — Memberships (complete)
+
+**Date:** 2026-07-18
+
+### What was built
+
+- **`lib/memberships.ts`** — `getMembershipsForPerson` (full history),
+  `getLatestMembership`, `getMembershipStatus` (`active` / `lapsed` / `none`,
+  computed live by comparing the latest `end_date` to today — never stored),
+  `createMembership` (used for both first-time recording and renewal — a
+  renewal is just another row), `getLapsedPeople` (people whose latest
+  membership's `end_date` is before today, for the lapsed list).
+- **`addMembershipAction`** (`app/people/actions.ts`) — validates the date
+  range, records the membership stamped with the current site lead.
+- **`app/people/membership-form.tsx`** — client component (start/end date
+  inputs, defaulting to today → one year out; `useActionState` for the "end
+  before start" validation error).
+- **Profile page** now shows a membership status banner (green "Current
+  member — through `<date>`", yellow "Lapsed — expired `<date>`", or neutral
+  "No membership on file"), the record/renew form, and membership history.
+- **`/memberships/lapsed`** — new page listing everyone whose latest
+  membership has expired, sorted most-recently-lapsed first, linked from the
+  top nav as "Lapsed Members".
+
+### Verified
+
+Typecheck and `npm run build` pass (new `/memberships/lapsed` route shows up
+in the build output). Browser-driven (Playwright) end-to-end: a person with
+no membership showed "No membership on file"; recording one with the
+pre-filled default dates flipped it to "Current member — through
+`<one year out>`" and added a history row; a second person got a
+directly-backdated expired membership (SQLite) and showed "Lapsed — expired
+`<date>`"; the `/memberships/lapsed` page listed only that lapsed person, not
+the active one. Zero console errors.
+
 ### Not built yet (explicitly out of scope so far)
 
-Memberships (Phase 4), reporting/export (Phase 5), Freehub CSV import
-(Phase 6) — see CLAUDE.md's checklist.
+Reporting/export (Phase 5), Freehub CSV import (Phase 6) — see CLAUDE.md's
+checklist.

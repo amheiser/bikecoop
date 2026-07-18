@@ -7,6 +7,7 @@ import { getSiteLead } from '@/lib/site-lead'
 import { createPerson, updatePerson, checkIn, getPerson } from '@/lib/people'
 import { getVolunteerHours, getCrossedMilestone } from '@/lib/hours'
 import { createFlag, resolveFlag, type FlagLevel } from '@/lib/flags'
+import { createMembership } from '@/lib/memberships'
 
 function readPersonForm(formData: FormData) {
   return {
@@ -104,4 +105,29 @@ export async function resolveFlagAction(formData: FormData) {
 
   resolveFlag(flagId)
   revalidatePath(`/people/${personId}`)
+}
+
+export async function addMembershipAction(_prevState: string | undefined, formData: FormData) {
+  await requireAuth()
+  const personId = Number(formData.get('personId'))
+  const startDate = String(formData.get('startDate') ?? '')
+  const endDate = String(formData.get('endDate') ?? '')
+
+  if (!startDate || !endDate) {
+    return 'Start and end date are required.'
+  }
+  if (endDate < startDate) {
+    return 'End date must be on or after the start date.'
+  }
+
+  const siteLead = await getSiteLead()
+  createMembership({
+    personId,
+    startDate,
+    endDate,
+    loggedBy: siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null,
+  })
+
+  revalidatePath(`/people/${personId}`)
+  revalidatePath('/memberships/lapsed')
 }

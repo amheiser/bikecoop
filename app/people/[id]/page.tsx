@@ -3,10 +3,18 @@ import { notFound } from 'next/navigation'
 import { getPerson, getVisitsForPerson } from '@/lib/people'
 import { getVolunteerHours, getFootTraffic, getAchievedMilestones, MILESTONES } from '@/lib/hours'
 import { getActiveFlags } from '@/lib/flags'
+import { getMembershipStatus, getMembershipsForPerson, todayISO } from '@/lib/memberships'
 import { CheckInForm } from '../checkin-form'
 import { BannedModal } from '../banned-modal'
 import { FlagAddForm } from '../flag-add-form'
+import { MembershipForm } from '../membership-form'
 import { resolveFlagAction } from '../actions'
+
+function oneYearFrom(dateISO: string): string {
+  const date = new Date(dateISO)
+  date.setFullYear(date.getFullYear() + 1)
+  return date.toISOString().slice(0, 10)
+}
 
 export default async function PersonProfilePage({
   params,
@@ -24,6 +32,11 @@ export default async function PersonProfilePage({
   const activeFlags = getActiveFlags(person.id)
   const bannedFlags = activeFlags.filter((f) => f.level === 'banned')
   const warningFlags = activeFlags.filter((f) => f.level !== 'banned')
+  const { status: membershipStatus, latest: latestMembership } = getMembershipStatus(person.id)
+  const membershipHistory = getMembershipsForPerson(person.id)
+  const today = todayISO()
+  const defaultStartDate = today
+  const defaultEndDate = oneYearFrom(today)
 
   return (
     <main>
@@ -62,6 +75,12 @@ export default async function PersonProfilePage({
         </div>
       ))}
 
+      <div className={`membership-status ${membershipStatus}`}>
+        {membershipStatus === 'active' && `Current member — through ${latestMembership!.end_date}`}
+        {membershipStatus === 'lapsed' && `Lapsed — expired ${latestMembership!.end_date}`}
+        {membershipStatus === 'none' && 'No membership on file'}
+      </div>
+
       <div className="stats-row">
         <div className="stat">
           <span className="value">{volunteerHours}</span>
@@ -89,6 +108,24 @@ export default async function PersonProfilePage({
       <section style={{ marginTop: '2rem' }}>
         <h2>Flags</h2>
         <FlagAddForm personId={person.id} />
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Membership</h2>
+        <MembershipForm
+          personId={person.id}
+          defaultStartDate={defaultStartDate}
+          defaultEndDate={defaultEndDate}
+        />
+        <ul className="visit-list" style={{ marginTop: '1rem' }}>
+          {membershipHistory.map((m) => (
+            <li key={m.id}>
+              {m.start_date} → {m.end_date}
+              {m.logged_by && <span className="muted"> · logged by {m.logged_by}</span>}
+            </li>
+          ))}
+          {membershipHistory.length === 0 && <p className="muted">No membership history.</p>}
+        </ul>
       </section>
 
       <section style={{ marginTop: '2rem' }}>
