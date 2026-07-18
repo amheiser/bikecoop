@@ -37,7 +37,7 @@ export default async function PersonProfilePage({
   const defaultStartDate = today
   const defaultEndDate = oneYearFrom(today)
 
-  const personType = person.is_staff === 1 ? 'Staff' : membershipStatus === 'active' ? 'Member' : 'Patron'
+  const personType = person.is_staff === 1 ? 'Volunteer' : membershipStatus === 'active' ? 'Member' : 'Patron'
   const address = [person.street1, person.street2, person.city, person.state, person.postal_code, person.country]
     .filter(Boolean)
     .join(', ')

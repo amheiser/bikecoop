@@ -81,3 +81,10 @@ CREATE TABLE IF NOT EXISTS reward_redemptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reward_redemptions_person ON reward_redemptions (person_id);
+
+-- Tracks one-off data-fix migrations (see lib/db.ts) so they run exactly
+-- once per database, distinct from the schema/column changes above.
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  name TEXT PRIMARY KEY,
+  applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

@@ -14,6 +14,15 @@ function ensureColumn(db: Database.Database, table: string, column: string, defi
   }
 }
 
+// One-off data fixes that must run exactly once per database, tracked in
+// schema_migrations so re-deploys don't re-apply (or permanently re-force) them.
+function runOnce(db: Database.Database, name: string, fn: () => void) {
+  const alreadyRan = db.prepare('SELECT 1 FROM schema_migrations WHERE name = ?').get(name)
+  if (alreadyRan) return
+  fn()
+  db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name)
+}
+
 function migrate(db: Database.Database) {
   ensureColumn(db, 'people', 'is_site_lead', 'INTEGER NOT NULL DEFAULT 0')
   ensureColumn(db, 'people', 'street1', 'TEXT')
@@ -24,6 +33,14 @@ function migrate(db: Database.Database) {
   ensureColumn(db, 'people', 'country', 'TEXT')
   ensureColumn(db, 'people', 'year_of_birth', 'INTEGER')
   ensureColumn(db, 'people', 'tags', 'TEXT')
+
+  // is_site_lead used to be conflated with is_staff (whoever had is_staff = 1
+  // populated the "Working today" dropdown). Preserve that prior behavior for
+  // already-existing people the first time this runs, without permanently
+  // forcing the two flags to stay in sync going forward.
+  runOnce(db, 'backfill_site_lead_from_staff', () => {
+    db.exec('UPDATE people SET is_site_lead = 1 WHERE is_staff = 1')
+  })
 }
 
 function createConnection() {

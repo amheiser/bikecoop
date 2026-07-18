@@ -28,13 +28,15 @@ and free-form tags, plus a general Notes journal separate from any structured fl
 (it has no banned/watch/heads_up levels at all — just Staff/Patron + notes). Ours now
 mirrors those fields and adds the more structured Flags system on top.
 
-- **people** — everyone who enters the shop, members and non-members. `is_staff` is a
-  general staff/leadership designation (shown on the profile as Staff vs Member vs
-  Patron). `is_site_lead` is a narrower subset of staff — only they populate the
-  "Working today" dropdown used for attribution. Most staff are **not** site leads.
-  Also carries full mailing address (`street1`, `street2`, `city`, `state`,
-  `postal_code`, `country`), `year_of_birth`, and free-form comma-separated `tags`.
-  `email_opt_out` must be respected in any export.
+- **people** — everyone who enters the shop, members and non-members. `is_staff`
+  (column name kept as-is internally to avoid colliding with `visits.is_volunteer`,
+  which means something different — a specific day's volunteer session) is a general
+  designation shown on the profile as **Volunteer** vs Member vs Patron. `is_site_lead`
+  is a narrower subset — only they populate the "Working today" dropdown used for
+  attribution. Most volunteers are **not** site leads. Also carries full mailing
+  address (`street1`, `street2`, `city`, `state`, `postal_code`, `country`),
+  `year_of_birth`, and free-form comma-separated `tags`. `email_opt_out` must be
+  respected in any export.
 - **memberships** — dated annual records attached to a person. Current membership =
   `end_date >= today`. Lapsed = most recent membership has `end_date < today`.
   One membership type only (annual) — Freehub also tracks "Earn a Bike/Digging Rights"
@@ -56,6 +58,14 @@ New columns on `people` (`is_site_lead`, address, `year_of_birth`, `tags`) are a
 already-deployed databases via a small idempotent migration in `lib/db.ts`
 (`ALTER TABLE ... ADD COLUMN`, guarded by checking `PRAGMA table_info` first) — schema.sql's
 `CREATE TABLE IF NOT EXISTS` only covers brand-new databases.
+
+For one-off **data** fixes (not schema changes) — e.g. backfilling a new flag's value
+from an old one — use `lib/db.ts`'s `runOnce(db, name, fn)`, backed by the
+`schema_migrations` table. This ran once already to fix a real bug: splitting
+`is_staff`/`is_site_lead` initially left every already-existing "staff" person
+silently dropped from the site-lead dropdown, since `is_site_lead` defaulted to 0 for
+everyone regardless of their prior `is_staff` value. Any future flag split or similar
+change needs the same treatment — a plain `ensureColumn` is not enough on its own.
 
 ## Volunteer milestones / badges
 

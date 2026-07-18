@@ -39,7 +39,25 @@ export async function createPersonAction(_prevState: string | undefined, formDat
     return 'First and last name are required.'
   }
   const id = createPerson(input)
+
+  const siteLead = await getSiteLead()
+  const loggedByName = siteLead ? `${siteLead.first_name} ${siteLead.last_name}` : null
+
+  if (formData.get('startMembership') === 'on') {
+    const start = todayISO()
+    createMembership({ personId: id, startDate: start, endDate: oneYearFrom(start), loggedBy: loggedByName })
+  }
+
+  if (formData.get('checkInToday') === 'on') {
+    checkIn({
+      personId: id,
+      isVolunteer: formData.get('checkInAsVolunteer') === 'on',
+      loggedBy: loggedByName,
+    })
+  }
+
   revalidatePath('/people')
+  revalidatePath('/memberships/lapsed')
   redirect(`/people/${id}`)
 }
 

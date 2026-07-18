@@ -320,3 +320,60 @@ double-redeem); backdated further to 30.0 hours, confirmed Earn-a-Bike
 became available, redeemed it, and confirmed exactly one membership row
 existed throughout (no duplicate-creation bug from re-redeeming or
 re-rendering). Zero console errors.
+
+## Post-deploy fixes: site-lead migration bug, Volunteer wording, new-person membership (complete)
+
+**Date:** 2026-07-18
+
+Reported by Nick right after the person-model deploy went live: the "Working
+today" dropdown appeared broken.
+
+### Root cause
+
+The `is_staff`/`is_site_lead` split shipped in the previous commit had a real
+regression: under the old (pre-split) code, `is_staff = 1` was what populated
+the site-lead dropdown. Splitting the flag added `is_site_lead` defaulting to
+`0` for *every* already-existing person — including everyone who used to show
+up in the dropdown — silently revoking their dropdown access on deploy. Not
+caught earlier because verification only tested fresh people created after
+the split, never an already-existing "staff" person carried across the
+migration.
+
+### What was built
+
+- **One-time backfill migration** (`lib/db.ts`) — a new `runOnce()` helper
+  backed by a `schema_migrations` tracking table (`name`, `applied_at`).
+  `backfill_site_lead_from_staff` sets `is_site_lead = 1` for anyone who
+  already had `is_staff = 1`, exactly once, on whichever database it hits
+  next (dev or the already-migrated production DB — it re-checks the
+  column's *existence*, not this data fix, so it still applies even though
+  `is_site_lead` itself was added in the prior deploy). Verified it does
+  **not** re-run on subsequent boots and does **not** fight a future manual
+  edit (e.g. someone later unchecking Site Lead for a volunteer stays
+  unchecked).
+- **"Staff" renamed to "Volunteer"** in the UI (checkbox label on
+  `person-form.tsx`, the Volunteer/Member/Patron type shown on the profile).
+  The underlying `is_staff` column/variable names are unchanged — renaming
+  them to `is_volunteer` would collide in meaning with `visits.is_volunteer`
+  (a specific day's volunteer session vs. this general designation), so only
+  the display text changed.
+- **New-person form gained three checkboxes** (shown only when creating, not
+  editing, mirroring Freehub's own new-person form): "Start annual
+  membership today", "Check in today", "…as a volunteer session". Previously
+  creating a person required a second trip to their profile to record a
+  membership or check them in — a real gap vs. Freehub that Nick called out.
+
+### Verified
+
+Typecheck and `npm run build` pass. Reproduced the exact bug first: built a
+database shaped like the *live pre-fix* state (`is_site_lead` column already
+present, defaulted to 0, on a person with `is_staff = 1`), ran the new
+migration logic against it, and confirmed the backfill fixes it — then ran
+migration a second time (no change) and a third time after manually
+unsetting the flag (stays unset, confirming the fix doesn't fight future
+edits). Browser-driven (Playwright): confirmed the new-person form shows
+"Volunteer" (not "Staff") and the three new checkboxes; created a person with
+all three checked in one submission and confirmed the profile showed
+"Current member", a volunteer visit in Visit History, and 2.5 volunteer
+hours; confirmed the Edit form correctly omits the new-person-only
+checkboxes. Zero console errors.

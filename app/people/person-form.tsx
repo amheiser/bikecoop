@@ -73,7 +73,7 @@ export function PersonForm({
       </label>
       <label className="checkbox-row">
         <input type="checkbox" name="isStaff" defaultChecked={person?.is_staff === 1} />
-        Staff
+        Volunteer
       </label>
       <label className="checkbox-row">
         <input type="checkbox" name="isSiteLead" defaultChecked={person?.is_site_lead === 1} />
@@ -83,6 +83,22 @@ export function PersonForm({
         <input type="checkbox" name="emailOptOut" defaultChecked={person?.email_opt_out === 1} />
         Opted out of email
       </label>
+      {!person && (
+        <>
+          <label className="checkbox-row">
+            <input type="checkbox" name="startMembership" />
+            Start annual membership today
+          </label>
+          <label className="checkbox-row">
+            <input type="checkbox" name="checkInToday" />
+            Check in today
+          </label>
+          <label className="checkbox-row">
+            <input type="checkbox" name="checkInAsVolunteer" />
+            …as a volunteer session
+          </label>
+        </>
+      )}
       {error && <p className="error">{error}</p>}
       <button type="submit" className="btn-primary" disabled={pending}>
         {pending ? 'Saving…' : submitLabel}
