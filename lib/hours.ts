@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 
-export const MILESTONES = [5, 10, 20, 50, 100, 200, 300, 400, 500]
+export const MILESTONES = [5, 10, 20, 30, 50, 100, 200, 300, 400, 500]
 export const HOURS_PER_VOLUNTEER_VISIT = 2.5
 
 export function getVolunteerHours(personId: number): number {
