@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# St. Pete Bike Coop — Member Management
 
-## Getting Started
+A small, boring-on-purpose member-management app for a cooperative bike shop:
+people & profiles, daily check-ins, volunteer hours & milestone rewards,
+behavior flags, annual memberships, and reporting/export. It replaces a legacy
+Ruby on Rails app ("Freehub").
 
-First, run the development server:
+**Stack:** Next.js (App Router) + TypeScript, SQLite via `better-sqlite3`,
+plain CSS. No ORM, no component libraries. See [CLAUDE.md](CLAUDE.md) for the
+full domain model, design decisions, and build roadmap, and
+[PROGRESS.md](PROGRESS.md) for the dated changelog.
+
+## Running locally
+
+Requires Node 20+.
 
 ```bash
+npm install
+cp .env.local.example .env.local   # or create .env.local by hand, see below
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` needs:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Purpose |
+|---|---|
+| `AUTH_USERNAME` | Shared login username for the whole app |
+| `AUTH_PASSWORD` | Shared login password |
+| `SESSION_SECRET` | Random string used to sign the session cookie (e.g. `openssl rand -hex 32`) |
+| `DATABASE_PATH` | Optional. SQLite file path; defaults to `./bikecoop.db` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The database file is created and migrated automatically on first request
+(`db/schema.sql` + the idempotent migrations in `lib/db.ts`). The local dev
+database is disposable and gitignored — delete `bikecoop.db*` any time to
+start fresh. Use **Reports → Sample Data** in the app to load/clear a test
+dataset.
 
-## Learn More
+## Tests
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Unit tests (`tests/`) run against an in-memory SQLite database via Node's
+built-in test runner — no framework, no network, sub-second.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+Deployed on Render; every push to `main` auto-deploys. Production needs the
+same env vars as above, plus `DATABASE_PATH=/var/data/bikecoop.db` pointing at
+a persistent disk. Before go-live: attach the persistent disk and set up a
+periodic off-box backup of the SQLite file.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Conventions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Dates are stored as ISO `YYYY-MM-DD` strings, always computed in the shop's
+  timezone (`lib/dates.ts`) — never from the server's UTC clock.
+- Dependencies are pinned exactly; don't add packages without a strong reason.
+- Keep the UI obvious enough for a non-technical volunteer at a front desk.

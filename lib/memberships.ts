@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { todayISO } from '@/lib/dates'
 
 export type Membership = {
   id: number
@@ -10,16 +11,6 @@ export type Membership = {
 }
 
 export type MembershipStatus = 'active' | 'lapsed' | 'none'
-
-export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-export function oneYearFrom(dateISO: string): string {
-  const date = new Date(dateISO)
-  date.setFullYear(date.getFullYear() + 1)
-  return date.toISOString().slice(0, 10)
-}
 
 export function getMembershipsForPerson(personId: number): Membership[] {
   return db
@@ -68,6 +59,7 @@ export function getLapsedPeople(): LapsedPerson[] {
        JOIN memberships m ON m.person_id = p.id
        WHERE m.end_date = (SELECT MAX(end_date) FROM memberships WHERE person_id = p.id)
          AND m.end_date < ?
+       GROUP BY p.id
        ORDER BY m.end_date DESC`
     )
     .all(todayISO()) as LapsedPerson[]

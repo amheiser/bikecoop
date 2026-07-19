@@ -14,6 +14,8 @@ export async function login(_prevState: string | undefined, formData: FormData) 
   const password = String(formData.get('password') ?? '')
 
   if (!checkCredentials(username, password)) {
+    // Flat delay on failure to blunt online brute-forcing of the shared password.
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     return 'Incorrect username or password.'
   }
 

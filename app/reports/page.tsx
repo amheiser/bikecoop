@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getReportMetrics, getPeriodRange, MONTH_NAMES, type Period, type PeriodType } from '@/lib/reports'
+import { todayISO } from '@/lib/dates'
 import { getLapsedPeople } from '@/lib/memberships'
 import { getVolunteerRoster, getCurrentMilestone } from '@/lib/hours'
 import { seedSampleDataAction, clearSampleDataAction } from './actions'
@@ -10,13 +11,15 @@ export default async function ReportsPage({
   searchParams: Promise<{ type?: string; year?: string; month?: string; quarter?: string }>
 }) {
   const sp = await searchParams
-  const now = new Date()
+  const today = todayISO()
+  const currentYear = Number(today.slice(0, 4))
+  const currentMonth = Number(today.slice(5, 7))
 
   const type: PeriodType =
     sp.type === 'quarterly' || sp.type === 'annual' ? sp.type : 'monthly'
-  const year = Number(sp.year) || now.getFullYear()
-  const month = Number(sp.month) || now.getMonth() + 1
-  const quarter = Number(sp.quarter) || Math.floor(now.getMonth() / 3) + 1
+  const year = Number(sp.year) || currentYear
+  const month = Number(sp.month) || currentMonth
+  const quarter = Number(sp.quarter) || Math.floor((currentMonth - 1) / 3) + 1
 
   const period: Period = { type, year, month, quarter }
   const { label } = getPeriodRange(period)

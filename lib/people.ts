@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { todayISO } from '@/lib/dates'
 
 export type Person = {
   id: number
@@ -128,9 +129,13 @@ export function getVisitsForPerson(personId: number): Visit[] {
 }
 
 export function checkIn(input: { personId: number; isVolunteer: boolean; loggedBy: string | null }): void {
+  // MAX() so a plain re-check-in the same evening never downgrades an
+  // already-logged volunteer session (which would silently erase 2.5 hours).
   db.prepare(
-    `INSERT INTO visits (person_id, is_volunteer, logged_by)
-     VALUES (?, ?, ?)
-     ON CONFLICT (person_id, visit_date) DO UPDATE SET is_volunteer = excluded.is_volunteer, logged_by = excluded.logged_by`
-  ).run(input.personId, input.isVolunteer ? 1 : 0, input.loggedBy)
+    `INSERT INTO visits (person_id, visit_date, is_volunteer, logged_by)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT (person_id, visit_date) DO UPDATE SET
+       is_volunteer = MAX(is_volunteer, excluded.is_volunteer),
+       logged_by = excluded.logged_by`
+  ).run(input.personId, todayISO(), input.isVolunteer ? 1 : 0, input.loggedBy)
 }

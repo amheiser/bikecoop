@@ -71,7 +71,7 @@ change needs the same treatment — a plain `ensureColumn` is not enough on its 
 ## Volunteer milestones / badges
 
 Computed live from cumulative hours, never stored. Thresholds (hours):
-5, 10, 20, 50, 100, 200, 300, 400, 500+.
+5, 10, 20, 30, 50, 100, 200, 300, 400, 500+.
 When logging a session pushes someone past a threshold, show an in-app celebration
 (e.g. toast: "🎉 Jane just passed 50 hours!"). Badges display on the person's profile —
 but only once a person has logged at least one volunteer hour. The Volunteer Hours
@@ -167,7 +167,14 @@ Keep this checklist updated as phases complete.
 ## Conventions
 
 - Small commits with clear messages; push to `main` deploys automatically.
-- Dates stored as ISO strings (`YYYY-MM-DD`); SQLite `date('now')` defaults are used.
+- Dates stored as ISO strings (`YYYY-MM-DD`), always computed in the shop's
+  timezone via `lib/dates.ts` (`todayISO()` etc.) — never from the server's UTC
+  clock and never via SQLite's `date('now')` (also UTC). The server runs in UTC
+  and UTC midnight lands mid-shift (7–8pm Eastern), so a UTC "today" stamps the
+  wrong date on evening check-ins. Pass dates explicitly to INSERTs.
+- `npm test` runs the unit tests in `tests/` (Node's built-in runner + `tsx`,
+  in-memory SQLite). Run them (plus `tsc --noEmit` and `npm run build`) before
+  any push; add a regression test when fixing a bug.
 - Keep dependencies minimal and pinned. Do not add packages without a strong reason.
 - UI should be obvious enough for a non-technical volunteer at a front desk:
   big search box, big buttons, high contrast. Function over polish.

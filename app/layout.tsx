@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
 import Link from 'next/link'
 import './globals.css'
-import { isValidSessionCookieValue, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { isAuthenticated as checkAuthenticated } from '@/lib/auth'
 import { getSiteLeads } from '@/lib/people'
 import { getSiteLead } from '@/lib/site-lead'
 import { SiteLeadPicker } from './site-lead-picker'
@@ -18,8 +17,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const cookieStore = await cookies()
-  const isAuthenticated = isValidSessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value)
+  const isAuthenticated = await checkAuthenticated()
 
   const siteLeads = isAuthenticated ? getSiteLeads() : []
   const siteLead = isAuthenticated ? await getSiteLead() : null

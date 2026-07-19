@@ -31,19 +31,31 @@ export function isValidSessionCookieValue(value: string | undefined): boolean {
   return a.length === b.length && crypto.timingSafeEqual(a, b)
 }
 
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB)
+}
+
 export function checkCredentials(username: string, password: string): boolean {
   const validUsername = process.env.AUTH_USERNAME
   const validPassword = process.env.AUTH_PASSWORD
   if (!validUsername || !validPassword) return false
-  return username === validUsername && password === validPassword
+  const usernameOk = safeEqual(username, validUsername)
+  const passwordOk = safeEqual(password, validPassword)
+  return usernameOk && passwordOk
 }
 
 export const SESSION_COOKIE_NAME = SESSION_COOKIE
 export const SESSION_MAX_AGE_SECONDS = SESSION_TTL_MS / 1000
 
-export async function requireAuth(): Promise<void> {
+export async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies()
-  if (!isValidSessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value)) {
+  return isValidSessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value)
+}
+
+export async function requireAuth(): Promise<void> {
+  if (!(await isAuthenticated())) {
     throw new Error('Unauthorized')
   }
 }

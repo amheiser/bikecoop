@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import type { Person } from '@/lib/people'
 import { getMembershipStatus } from '@/lib/memberships'
+import { todayISO } from '@/lib/dates'
 import { getVolunteerHours, getCurrentMilestone } from '@/lib/hours'
 import { getActiveFlags } from '@/lib/flags'
 
@@ -22,7 +23,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export function getExportRows(): ExportRow[] {
   const people = db.prepare('SELECT * FROM people ORDER BY last_name, first_name').all() as Person[]
-  const todayMs = new Date(new Date().toISOString().slice(0, 10)).getTime()
+  const todayMs = new Date(`${todayISO()}T00:00:00Z`).getTime()
 
   return people.map((person) => {
     const { status, latest } = getMembershipStatus(person.id)
@@ -35,7 +36,9 @@ export function getExportRows(): ExportRow[] {
       id: person.id,
       first_name: person.first_name,
       last_name: person.last_name,
-      email: person.email,
+      // Opted-out addresses never leave the app — the export's stated purpose
+      // is drafting email in external tools.
+      email: person.email_opt_out === 1 ? null : person.email,
       phone: person.phone,
       membership_status: status,
       days_until_or_since_expiry: daysUntilOrSinceExpiry,

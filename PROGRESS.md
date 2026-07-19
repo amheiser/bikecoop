@@ -513,3 +513,99 @@ Rookie (not flagged, but already has 12.5 real hours from seed data) still shows
 Volunteer hours/badges/Rewards on their profile but has no checkbox to log more;
 confirmed a plain check-in for a non-volunteer (Patty) still works and correctly
 does not add to volunteer hours. Zero console errors.
+
+## Code-review fixes: timezone, check-in downgrade, export hardening, tests (complete)
+
+**Date:** 2026-07-18
+
+Nick asked for a full evaluation of the build before showing it to another
+developer. The review found three real bugs (each reproduced against the real
+schema before fixing) plus hardening/hygiene gaps. All fixed, with regression
+tests.
+
+### Bugs fixed
+
+- **Timezone (the big one)** — every date in the app was UTC, but the shop runs
+  Eastern evenings: UTC midnight is 8:00pm EDT / 7:00pm EST, mid-shift. Check-ins
+  after that got stamped with *tomorrow's* date, breaking the one-visit-per-day
+  rule (double-counting foot traffic and volunteer hours), bleeding reports
+  across month boundaries, and flipping membership expiry hours early. New
+  **`lib/dates.ts`** (`SHOP_TIMEZONE = 'America/New_York'`, `todayISO()`,
+  `addDaysISO()`, `oneYearFrom()`) is now the single source of date truth;
+  `todayISO`/`oneYearFrom` moved here out of `lib/memberships.ts`. `checkIn()`
+  passes `visit_date` explicitly instead of relying on SQLite's UTC
+  `date('now')` default; export's expiry math, seed backdating, and the reports
+  page's default period all use it too.
+- **Volunteer-session downgrade** — `checkIn()`'s upsert overwrote
+  `is_volunteer` with the latest submission, so a plain re-check-in the same
+  evening silently erased an already-logged 2.5-hour session. Now
+  `is_volunteer = MAX(is_volunteer, excluded.is_volunteer)`: upgrades allowed,
+  downgrades never.
+- **Duplicate lapsed-list rows** — two membership rows sharing the same latest
+  `end_date` (e.g. a double-click on Record / Renew) made `getLapsedPeople()`
+  return the person twice. Fixed with `GROUP BY p.id`.
+
+### Hardening & hygiene
+
+- **Export routes check auth themselves** — `/export/csv` and `/export/json`
+  (the app's biggest PII dump) relied solely on `proxy.ts`; middleware-bypass
+  bugs are a known Next.js CVE genre. Both handlers now 401 without a valid
+  session via a new `isAuthenticated()` helper in `lib/auth.ts` (also reused by
+  `app/layout.tsx` and `requireAuth`).
+- **`email_opt_out` actually respected in exports** — opted-out people keep
+  their row (hours, membership status) but the email column is blanked, so the
+  address never leaves the app. Decision by Nick via AskUserQuestion.
+- **Login hardening** — credentials compared with `crypto.timingSafeEqual`, and
+  a flat 1-second delay on failed attempts to blunt brute-forcing.
+- **Startup race fixed** — `next build`'s parallel workers all opening a
+  brand-new DB file raced on schema creation (`SQLITE_BUSY`). `lib/db.ts` now
+  sets a 10s busy timeout and retries the idempotent schema+migrate step on
+  contention (sync sleep via `Atomics.wait`).
+- **Dependencies pinned exactly** (per CLAUDE.md's own convention — several had
+  drifted to `^` ranges). Known `npm audit` findings are 2 moderates, both
+  transitive via `next` itself (postcss), with no non-breaking fix — accepted.
+- **README rewritten** — was still create-next-app boilerplate; now documents
+  env vars (with a committed `.env.local.example`), local setup, tests, and
+  deployment.
+
+### Tests (new)
+
+`npm test` — 22 unit tests in `tests/` via Node's built-in `node:test` runner +
+`tsx` (the one new dev dependency), against an in-memory SQLite DB
+(`DATABASE_PATH=:memory:`), sub-second. Covers: date/timezone helpers, person
+CRUD + search, one-visit-per-day upsert, **regression tests for all three
+bugs**, membership status boundaries (including expiring-today), lapsed-list
+dedup, hours/milestone math, volunteer roster ordering, reward tier unlock →
+redeem → UNIQUE backstop, export opt-out blanking, active-vs-resolved flags in
+export, and CSV escaping.
+
+### Verified
+
+`npm test` (22/22), `npx tsc --noEmit`, and `npm run build` all clean — build
+re-run against a brand-new DB to confirm the worker-race fix. Browser-driven
+(Playwright): unauthenticated export requests blocked; wrong password rejected
+with the ~1s delay; authenticated CSV/JSON exports return correct headers and
+all 7 sample rows; reports sections correct; Vera's volunteer check-in
+(32.5 → 35 hrs) survives a plain same-day re-check-in (still 35 — the downgrade
+regression); visit history stamped with the Eastern date; sample data
+load/clear round-trip. One dev-only `performance.measure` pageerror from
+Next.js internals (not app code) — does not occur in production builds.
+
+### Not changed (evaluation findings deferred by choice)
+
+Search by "Last First" order or phone number; `year_of_birth` validation; the
+reports "lapsed members" metric counting not-yet-expired same-period
+memberships; modal focus trap; a `lib/config.ts` consolidating per-shop
+constants (org name, timezone, hours-per-session, tiers) as the first step
+toward offering the app to other co-ops; off-box database backups before
+go-live.
+
+## Add a 30-hour milestone badge (complete)
+
+**Date:** 2026-07-18
+
+Added `30` to `MILESTONES` in `lib/hours.ts` so the badge row (and celebration
+toast / reports milestone labels) has a step matching the 30-hour Earn-a-Bike
+reward tier. Pure constant change — milestones are computed live, never stored,
+so no migration. Tests extended for the new threshold; 22/22 pass, typecheck
+clean.

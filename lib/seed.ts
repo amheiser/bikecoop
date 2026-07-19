@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { todayISO, addDaysISO } from '@/lib/dates'
 import { createPerson } from '@/lib/people'
 import { createMembership } from '@/lib/memberships'
 import { createFlag } from '@/lib/flags'
@@ -11,9 +12,7 @@ export const SAMPLE_TAG = 'sample-data'
 const SEEDED_BY = 'Sample Data'
 
 function isoDaysFromToday(offsetDays: number): string {
-  const date = new Date()
-  date.setDate(date.getDate() + offsetDays)
-  return date.toISOString().slice(0, 10)
+  return addDaysISO(todayISO(), offsetDays)
 }
 
 function insertBackdatedVisit(personId: number, dayOffset: number, isVolunteer: boolean) {

@@ -49,15 +49,36 @@ function migrate(db: Database.Database) {
   })
 }
 
+// Waits synchronously without spinning the CPU (better-sqlite3 is sync, so a
+// promise-based sleep can't help here).
+function sleepSync(ms: number) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+}
+
 function createConnection() {
   const dbPath = process.env.DATABASE_PATH || './bikecoop.db'
-  const db = new Database(dbPath)
+  const db = new Database(dbPath, { timeout: 10000 })
+  db.pragma('busy_timeout = 10000')
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
   const schemaPath = path.join(process.cwd(), 'db', 'schema.sql')
-  db.exec(fs.readFileSync(schemaPath, 'utf8'))
-  migrate(db)
+  const schema = fs.readFileSync(schemaPath, 'utf8')
+
+  // Several processes can open the database at once (e.g. next build's
+  // parallel workers on a brand-new file). Schema setup and migrations are
+  // idempotent, so on lock contention just wait and try again.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      db.exec(schema)
+      migrate(db)
+      break
+    } catch (error) {
+      const busy = error instanceof Error && 'code' in error && error.code === 'SQLITE_BUSY'
+      if (!busy || attempt >= 50) throw error
+      sleepSync(100)
+    }
+  }
 
   return db
 }
