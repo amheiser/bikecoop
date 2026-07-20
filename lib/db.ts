@@ -33,6 +33,9 @@ function migrate(db: Database.Database) {
   ensureColumn(db, 'people', 'country', 'TEXT')
   ensureColumn(db, 'people', 'year_of_birth', 'INTEGER')
   ensureColumn(db, 'people', 'tags', 'TEXT')
+  // Legacy Freehub person id, set by the Phase 6 CSV import so re-running the
+  // import matches people instead of duplicating them.
+  ensureColumn(db, 'people', 'freehub_id', 'INTEGER')
 
   // is_site_lead used to be conflated with is_staff (whoever had is_staff = 1
   // populated the "Working today" dropdown). Preserve that prior behavior for

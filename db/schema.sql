@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS people (
   country TEXT,
   year_of_birth INTEGER,
   tags TEXT,
+  freehub_id INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

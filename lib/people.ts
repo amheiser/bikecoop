@@ -18,6 +18,7 @@ export type Person = {
   country: string | null
   year_of_birth: number | null
   tags: string | null
+  freehub_id: number | null
   created_at: string
 }
 

@@ -609,3 +609,62 @@ toast / reports milestone labels) has a step matching the 30-hour Earn-a-Bike
 reward tier. Pure constant change — milestones are computed live, never stored,
 so no migration. Tests extended for the new threshold; 22/22 pass, typecheck
 clean.
+
+## Phase 6 — Freehub CSV import (complete, pending real-file validation)
+
+**Date:** 2026-07-19
+
+Nick asked to do Phase 6 without having the legacy CSV export in hand yet, so
+the import was built against the exact format Freehub's own code produces —
+cloned the repo again and read `Person::CSV_FIELDS` / `to_csv` in
+`app/models/person.rb`. Notable findings from the source: the people export's
+`postal_code` column genuinely appears twice; booleans serialize as
+true/false; `created_at` is `YYYY-MM-DD HH:MM`; and the people export carries
+only the *latest* `membership_expires_on` date, not full membership history
+(that lives in the separate Services report, which we deliberately skip —
+latest expiry is enough for current/lapsed status). Import flow decisions from
+Nick: one-shot with a results summary (no preview step), people CSV only.
+
+### What was built
+
+- **`lib/import.ts`** — `parseCSV()` (minimal RFC-4180 parser: quoted fields,
+  escaped quotes, embedded commas/newlines, CRLF — no new dependency) and
+  `importFreehubPeople()`. Strict positional header validation up front — a
+  non-matching file errors out with the expected-vs-got column lists before
+  any row is touched. Whole import runs in one `db.transaction`. Per row:
+  skip (with reason) on wrong column count or missing name; `staff` →
+  `is_staff` (`is_site_lead` stays 0 — site leads get flagged by hand);
+  `email_opt_out`, address, `yob` → `year_of_birth`, `tag_list` → `tags`,
+  legacy `created_at` preserved; `membership_expires_on` → one membership with
+  start = one year before end (`oneYearBefore()` added to `lib/dates.ts`),
+  logged_by "Freehub import".
+- **Re-runnability** — new `people.freehub_id INTEGER` column (schema.sql +
+  `ensureColumn` migration). Match order: freehub_id first; else exact
+  case-insensitive first+last+email match *adopts* a person hand-entered
+  before the import (sets their freehub_id, no duplicate); else create.
+  Matched people are left completely unchanged — re-importing never overwrites
+  edits made in the app. Memberships dedupe on (person, end_date).
+- **UI** — "Legacy Import (Freehub)" section on `/reports`
+  (`app/reports/import-form.tsx`, `importFreehubAction`): file upload, 10 MB
+  sanity cap, results summary (created / already present / memberships added)
+  plus a per-row list of skipped rows with reasons.
+- **Tests** — `tests/import.test.ts` (6 tests, suite now 28): parser edge
+  cases, header rejection, field mapping + membership reconstruction,
+  re-run-changes-nothing, adopt-don't-duplicate, bad-row skipping.
+
+### Verified
+
+28/28 tests, typecheck, production build all clean. Browser-driven
+(Playwright) with a fake 3-person Freehub CSV: first import → 3 created /
+2 memberships; Fern shows Volunteer + active membership through 2026-11-30
+with legacy tags and no volunteer-hours stat (starts at zero); Otto (quoted
+"Otto, Sr." name) shows lapsed 2024-03-15 + opted out; re-running the same
+file → 0 created / 3 already present / 0 memberships and exactly one Fern in
+search; a wrong-format CSV is rejected with the clear header error. Zero
+console errors.
+
+### Outstanding
+
+The import has not yet been run against a *real* Freehub export — validate
+with the actual file before go-live (the strict header check means a format
+surprise fails loudly, not silently).

@@ -4,6 +4,7 @@ import { todayISO } from '@/lib/dates'
 import { getLapsedPeople } from '@/lib/memberships'
 import { getVolunteerRoster, getCurrentMilestone } from '@/lib/hours'
 import { seedSampleDataAction, clearSampleDataAction } from './actions'
+import { ImportForm } from './import-form'
 
 export default async function ReportsPage({
   searchParams,
@@ -149,6 +150,17 @@ export default async function ReportsPage({
             Download JSON
           </a>
         </div>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Legacy Import (Freehub)</h2>
+        <p className="muted">
+          One-time import of the legacy Freehub &quot;People&quot; report CSV export
+          (people + latest membership per person; legacy data has no volunteer hours).
+          Safe to re-run — people already imported are matched and left unchanged, never
+          duplicated.
+        </p>
+        <ImportForm />
       </section>
 
       <section style={{ marginTop: '2rem' }}>

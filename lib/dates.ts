@@ -23,3 +23,9 @@ export function oneYearFrom(dateISO: string): string {
   date.setUTCFullYear(date.getUTCFullYear() + 1)
   return date.toISOString().slice(0, 10)
 }
+
+export function oneYearBefore(dateISO: string): string {
+  const date = new Date(`${dateISO}T00:00:00Z`)
+  date.setUTCFullYear(date.getUTCFullYear() - 1)
+  return date.toISOString().slice(0, 10)
+}

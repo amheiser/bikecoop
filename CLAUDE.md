@@ -143,10 +143,28 @@ page/nav item, it's a section here.
 
 ## Data import (Phase 6)
 
-A one-time CSV import from the legacy Freehub export (people + membership history).
-Legacy data has no volunteer hours — hour totals start at zero at go-live.
-Import must de-duplicate and be re-runnable safely. Details finalized when the CSV
-header row is provided.
+A one-time CSV import of the legacy Freehub "People" report export, built on
+`/reports` ("Legacy Import"). The expected format was taken directly from
+Freehub's source (`Person::CSV_FIELDS` in app/models/person.rb):
+`id, first_name, last_name, staff, email, email_opt_out, phone, postal_code,
+street1, street2, city, state, postal_code (twice — a real Freehub quirk),
+country, yob, tag_list, created_at, membership_expires_on`. The header is
+validated strictly — a file that doesn't match errors out with a clear message
+before any row is touched. **Not yet validated against a real export file**
+(Nick didn't have one yet); do that before go-live.
+
+Semantics (`lib/import.ts`): `staff` → `is_staff` (`is_site_lead` always 0 —
+flag site leads by hand after import); `membership_expires_on` (Freehub's
+people export only carries the *latest* expiry) → one membership with
+start = one year before end; legacy data has no volunteer hours, so totals
+start at zero. Re-runnable: the legacy id is stored in `people.freehub_id` and
+matched on re-import (people already present are left unchanged, never
+duplicated or overwritten); people hand-entered before the import are adopted
+by exact name+email match instead of duplicated. Bad rows are skipped
+individually with per-row reasons in the results summary; the whole import
+runs in one transaction. Freehub's "Services" report CSV (full membership
+history, matched by name/email) was deliberately not imported — latest-expiry
+is enough for current/lapsed status.
 
 ## Build phases & current state
 
@@ -159,8 +177,11 @@ header row is provided.
 - [x] Phase 3 — Flags: add/clear UI, blocking modal for banned, banners for others.
 - [x] Phase 4 — Memberships: record/renew, current-vs-lapsed logic, lapsed list.
 - [x] Phase 5 — Reports & AI-friendly export.
-- [ ] Phase 6 — Freehub CSV import. Before go-live: upgrade Render to Starter,
-      attach persistent disk at /var/data, set DATABASE_PATH.
+- [x] Phase 6 — Freehub CSV import (built from the source-derived format; still
+      needs a test run against a real export file).
+- [ ] Go-live: validate the import with the real Freehub CSV, upgrade Render to
+      Starter, attach persistent disk at /var/data, set DATABASE_PATH, set up
+      off-box database backups.
 
 Keep this checklist updated as phases complete.
 
