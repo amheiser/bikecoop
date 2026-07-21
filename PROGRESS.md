@@ -798,3 +798,63 @@ backdrop. One console warning (hydration mismatch from a `caret-color`
 attribute injected by Chromium/Playwright automation on the login inputs) is
 unrelated to this change — confirmed via grep that `caret-color` doesn't
 appear anywhere in the new CSS.
+
+## Wayfinding restyle — chose a direction from the 4-concept comparison (complete)
+
+**Date:** 2026-07-21
+
+Following the shadcn conversation ("far less hamfisted") and the dark-mode
+removal, Nick asked for real visual direction suggestions. Had 4 agents each
+independently build a full working mockup (same real class names/content, so
+they'd translate directly) in a genuinely different aesthetic — Workshop
+(earthy/mechanic's-ledger), Community (soft/pastel/rounded), Wayfinding
+(bold bike-lane signage), Editorial (restrained/serif) — assembled into one
+comparison page (Shadow DOM per concept so overlapping class names like
+`.btn-primary` never collided across tabs) and published as an artifact.
+Nick picked **Wayfinding**.
+
+### What was built
+
+Applied the wayfinding language to the real `app/globals.css` — same approach
+as the prior redesign: CSS-only, zero component changes (the `.dense` class
+on Reports' `<main>` was already there from before). Key moves:
+- **Token system**: bike-lane green (`--accent`) + signal yellow (`--yellow`)
+  + navy (`--navy`) on sign-paper background, near-black ink, reserved
+  stop-sign red for banned/danger only. Radius scale flattened to 3px
+  everywhere (blocky, not rounded) and `--shadow-sm/md` now point at flat
+  offset "hard shadows" (`3px 3px 0 var(--foreground)`) that lift on hover
+  and press on click, instead of the previous soft blurred shadows.
+- **Typography**: headings/buttons/labels/nav go uppercase + letter-spaced,
+  simulating a display face via the system stack (no web font, no network
+  fetch — same constraint as before).
+- **Distinctive details carried over from the mockup**: a subtle repeating
+  grid-line texture on the page background (trail-map graph paper); a
+  colored left-edge stripe on `.person-row` (trailhead blaze); stats as solid
+  navy blocks with yellow labels; a diagonal yellow hazard-stripe treatment
+  on `.flag-banner.watch`; forms (`.stack`) now render as a bordered,
+  hard-shadowed card — with a `.card .stack` override so the login form
+  (already inside `.card`) doesn't get double-boxed; a small CSS-only
+  `::before` bike-emoji brand mark injected into the top nav (no JSX change).
+
+### Bug found and fixed during verification
+
+The concept mockup used circular medallions for milestone badges (`5 hrs`,
+`10 hrs`, ...), but `.badge`/`.badge-row` in the **real** app is also reused
+for free-text person tags (`sample-data`, `mechanic`, arbitrary length) —
+fixed-width circles broke and overflowed for longer tag text. Since the real
+DOM has no way to distinguish tag-badges from milestone-badges without a JSX
+change (both use the exact same classes), fixed `.badge` to an auto-width
+chip instead of a forced circle — kept the bold border/shadow/yellow-achieved
+treatment, dropped the fixed circle shape. Verified clean on both short
+milestone text and long tag text after the fix.
+
+### Verified
+
+`npm test` (38/38, unaffected), `tsc --noEmit`, `npm run build` all clean.
+Full Playwright pass across the real app (not just the mockup) — login,
+People empty/search states, a fully-populated profile (Vera: badges, rewards,
+active membership, stats, tags), the banned blocking modal (Bob), the watch
+hazard-stripe banner (Wendy), the new-person form, and Reports' `.dense`
+scope — plus a 390px mobile pass on the profile and Reports. Zero console
+errors. Confirmed the badge fix specifically: tags render as readable chips,
+milestones keep their bold yellow-achieved treatment.
