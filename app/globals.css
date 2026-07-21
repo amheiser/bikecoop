@@ -1,24 +1,52 @@
 :root {
   --background: #ffffff;
+  --surface: #ffffff;
   --foreground: #171717;
-  --border: #cbd5c0;
+  --border: #d8ddd1;
+  --border-strong: #b9c2ac;
+  --muted: #5f6357;
+
   --accent: #2f6b3a;
+  --accent-hover: #275a31;
+  --accent-active: #1f4827;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-contrast: #ffffff;
+  --focus-ring: color-mix(in srgb, var(--accent) 55%, transparent);
+
   --danger: #b3261e;
-  --danger-bg: #fdecea;
-  --watch-bg: #fff4d6;
-  --watch-fg: #7a5c00;
-  --muted: #5a5a5a;
+  --danger-soft: #fdecea;
+  --watch: #7a5c00;
+  --watch-soft: #fff4d6;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(20, 20, 20, 0.06), 0 1px 1px rgba(20, 20, 20, 0.04);
+  --shadow-md: 0 4px 12px rgba(20, 20, 20, 0.08), 0 2px 4px rgba(20, 20, 20, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #121212;
+    --surface: #1a1a1a;
     --foreground: #f0f0f0;
-    --border: #3a3a3a;
+    --border: #333333;
+    --border-strong: #494949;
+    --muted: #a3a3a3;
+
     --accent: #4caf6a;
+    --accent-hover: #5cc17a;
+    --accent-active: #3f9a58;
     --accent-contrast: #0a0a0a;
-    --muted: #a0a0a0;
+
+    --danger: #ff6b62;
+    --danger-soft: #3a1d1b;
+    --watch: #e8c56a;
+    --watch-soft: #3a3115;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -41,6 +69,9 @@ body {
   background: var(--background);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 18px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -51,6 +82,26 @@ body {
 
 a {
   color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 1.9rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+}
+
+h3 {
+  font-size: 1.05rem;
 }
 
 main {
@@ -73,14 +124,15 @@ main {
 .card {
   width: 100%;
   max-width: 400px;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   padding: 2rem;
 }
 
 .card h1 {
   margin-bottom: 1.25rem;
-  font-size: 1.5rem;
 }
 
 .stack {
@@ -101,20 +153,30 @@ input[type="password"],
 input[type="email"],
 input[type="tel"],
 input[type="search"],
+input[type="number"],
+input[type="date"],
+input[type="file"],
 select {
   font-size: 1.1rem;
   padding: 0.6rem 0.75rem;
   border: 2px solid var(--border);
-  border-radius: 8px;
-  background: var(--background);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--foreground);
   font-weight: normal;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
-input:focus,
-select:focus {
-  outline: 3px solid var(--accent);
-  outline-offset: 1px;
+input:hover,
+select:hover {
+  border-color: var(--border-strong);
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .password-field {
@@ -145,6 +207,7 @@ select:focus {
 .checkbox-row input {
   width: 1.4rem;
   height: 1.4rem;
+  accent-color: var(--accent);
 }
 
 button,
@@ -153,14 +216,30 @@ button,
   font-size: 1.1rem;
   font-weight: 700;
   padding: 0.7rem 1.25rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 2px solid var(--accent);
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease,
+    transform 150ms ease;
 }
 
 .btn-primary {
   background: var(--accent);
   color: var(--accent-contrast);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active {
+  background: var(--accent-active);
+  border-color: var(--accent-active);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(1px);
 }
 
 .btn-secondary {
@@ -168,9 +247,24 @@ button,
   color: var(--accent);
 }
 
+.btn-secondary:hover {
+  background: var(--accent-soft);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .error {
@@ -191,13 +285,23 @@ button:disabled {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 1rem;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .top-bar nav {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   font-weight: 600;
+}
+
+.top-bar nav a {
+  transition: color 150ms ease;
+}
+
+.top-bar nav a:hover {
+  color: var(--accent);
 }
 
 .site-lead-label {
@@ -221,9 +325,17 @@ button:disabled {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   padding: 0.9rem 1rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.person-row:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .person-row .name {
@@ -233,6 +345,13 @@ button:disabled {
 
 .person-row .name a {
   text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 150ms ease;
+}
+
+.person-row .name a:hover {
+  text-decoration-color: var(--accent);
 }
 
 .checkin-form {
@@ -284,6 +403,7 @@ button:disabled {
 .stat .value {
   font-size: 1.8rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .stat .label {
@@ -304,12 +424,14 @@ button:disabled {
   padding: 0.3rem 0.9rem;
   font-weight: 700;
   color: var(--muted);
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
 }
 
 .badge.achieved {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 .flag-banner {
@@ -318,15 +440,16 @@ button:disabled {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.9rem 1rem;
   margin-top: 0.75rem;
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .flag-banner.watch {
-  background: var(--watch-bg);
-  color: var(--watch-fg);
+  background: var(--watch-soft);
+  color: var(--watch);
 }
 
 .flag-banner form {
@@ -337,6 +460,7 @@ button:disabled {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,10 +469,11 @@ button:disabled {
 }
 
 .modal-card {
-  background: var(--background);
+  background: var(--surface);
   color: var(--foreground);
   border: 3px solid var(--danger);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   padding: 2rem;
   max-width: 480px;
   width: 100%;
@@ -365,24 +490,72 @@ button:disabled {
 
 .membership-status {
   display: inline-block;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.6rem 1rem;
   margin-top: 0.75rem;
   font-weight: 700;
 }
 
 .membership-status.active {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
 .membership-status.lapsed {
-  background: var(--watch-bg);
-  color: var(--watch-fg);
+  background: var(--watch-soft);
+  color: var(--watch);
 }
 
 .membership-status.none {
   background: transparent;
   color: var(--muted);
   border: 2px solid var(--border);
+}
+
+/* Denser layout for Reports — a site lead working at a desk, not a front-desk
+   check-in flow, so touch-target sizing doesn't need to be maximized. Nothing
+   outside .dense is affected. */
+.dense h2 {
+  font-size: 1.15rem;
+}
+
+.dense .stats-row {
+  gap: 1.25rem;
+}
+
+.dense .stat .value {
+  font-size: 1.4rem;
+}
+
+.dense .person-row {
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.dense .person-row .name {
+  font-size: 1rem;
+}
+
+.dense input[type="text"],
+.dense input[type="number"],
+.dense input[type="file"],
+.dense select {
+  font-size: 0.95rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.dense button,
+.dense .btn-primary,
+.dense .btn-secondary {
+  font-size: 0.95rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.dense .stack {
+  gap: 0.6rem;
+}
+
+.dense .visit-list {
+  gap: 0.3rem;
+  font-size: 0.95rem;
 }

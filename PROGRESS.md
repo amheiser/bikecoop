@@ -668,3 +668,133 @@ console errors.
 The import has not yet been run against a *real* Freehub export — validate
 with the actual file before go-live (the strict header check means a format
 surprise fails loudly, not silently).
+
+## Lapsed-member renewal emails — queue + one-click send, dry-run mode (complete)
+
+**Date:** 2026-07-19
+
+First deliberate amendment to CLAUDE.md's "no email" rule, planned in Plan Mode
+with decisions locked via AskUserQuestion: **queue + one-click send** (Nick
+chose the review step over fully-automatic — which also eliminated all
+cron/scheduler infrastructure; the queue is computed live and sending is a
+server action), **lapsed notice only** (no pre-expiry reminder yet), sent
+**once per lapse, 7 days after expiry** (grace week so in-person renewals never
+get emailed), and **provider undecided → ship in dry-run mode** (Nick wasn't
+sure whether the co-op has a domain for Resend vs. using co-op Gmail).
+
+### What was built
+
+- **`lapse_emails` table** (schema.sql only — `CREATE TABLE IF NOT EXISTS`
+  auto-applies to the deployed DB, no `ensureColumn` needed for a new table).
+  `UNIQUE(person_id, membership_end_date)` is the once-per-lapse guarantee:
+  re-clicking Send can never double-email; renew-then-lapse-again gets a new
+  end_date, so a new notice is correctly allowed.
+- **`lib/email.ts`** — `sendEmail()`, the app's single email exit point.
+  Resend API via plain fetch (zero new dependencies). With no
+  `RESEND_API_KEY`, it dry-runs: logs the full email to the server console and
+  reports `dryRun: true`, which is recorded as status `dry_run` in the log.
+- **`lib/lapse-emails.ts`** — `LAPSE_GRACE_DAYS = 7` (tunable);
+  `getLapseEmailQueue()` (latest-membership subquery reused from
+  `getLapsedPeople`, filtered on email present / not opted out / no active
+  banned flag / not already sent for this lapse); `renderLapseEmail()`
+  (editable plain-text template); `recordLapseEmail()`;
+  `getRecentLapseEmails()`.
+- **UI** — "Lapsed-Member Emails" section on `/reports`: rule explanation,
+  live queue (name/email/expiry), "Send N renewal emails" button
+  (`lapse-email-form.tsx` + `sendLapseEmailsAction`, which recomputes the
+  queue server-side rather than trusting the page), result summary with a
+  dry-run banner, failures listed and left queued for retry, and a
+  "Recently sent" log with status/timestamp/site-lead attribution.
+- Docs: CLAUDE.md out-of-scope bullet amended + new "Lapsed-member emails"
+  section; README + `.env.local.example` document `RESEND_API_KEY`/`EMAIL_FROM`.
+
+### Also fixed (caught by browser verification)
+
+`clearSampleData()` crashed with a FOREIGN KEY error after a lapse email was
+recorded for a sample person — the new `lapse_emails` table wasn't in its
+delete list. Added it, plus a regression test.
+
+### Verified
+
+38/38 tests (10 new: grace boundary, every exclusion rule, banned-resolve
+re-queue, watch-doesn't-block, once-per-lapse + UNIQUE backstop,
+renew-re-queue, template content, dry-run send, seed cleanup regression);
+typecheck + build clean. Playwright (dry-run): only Larry queued from sample
+data; Send → dry-run summary, queue empties, log shows Larry with "dry run",
+button disappears; state survives reload; server console shows the full email
+text; re-visiting cannot re-send. Zero console errors after the seed fix.
+
+### To actually send email (later)
+
+Decide provider: co-op domain + Resend (set `RESEND_API_KEY` + `EMAIL_FROM` on
+Render, ~3 DNS records) or swap ~20 lines in `lib/email.ts` for Gmail SMTP.
+Everything else is done.
+
+## Visual redesign — "clean modern utility" refresh of app/globals.css (complete)
+
+**Date:** 2026-07-21
+
+Nick asked about shadcn/ui for styling. Declined: it requires Tailwind + Radix,
+reversing CLAUDE.md's explicit "no Tailwind, no component libraries — plain
+CSS" decision and adding a build pipeline the app doesn't need. Agreed instead
+to refresh the existing plain CSS, since the actual complaint was that it
+looked "hamfisted" — genuinely true on inspection: `h1`/`h2`/`h3` had **zero**
+styling (raw browser defaults), no shadows/elevation anywhere, no hover/active/
+focus-visible states, no transitions, one flat accent hex doing every job.
+Direction locked via AskUserQuestion: clean modern utility (shadows, real type
+scale, interactive feedback), keep the green accent but formalize it as a
+token system, and — a late addition — make Reports denser than the rest of the
+app (it's site-lead desk use, not a front-desk check-in flow, so it doesn't
+need the same maximized touch targets).
+
+### What was built
+
+**CSS-only. Zero JSX/component changes except one class.** Every existing
+class name (`.btn-primary`, `.person-row`, `.badge`, `.flag-banner`, etc.)
+stays exactly as-is across every `.tsx` file — this is entirely a rewrite of
+`app/globals.css`, plus adding `className="dense"` to the `<main>` wrapper in
+`app/reports/page.tsx`.
+
+- **Token system** — expanded `:root` (+ dark-mode block): `--surface`
+  (card/row background, distinct from page `--background`), `--border-strong`,
+  a split accent (`--accent`/`--accent-hover`/`--accent-active`/
+  `--accent-soft`, replacing one flat hex reused everywhere), `--focus-ring`,
+  a `--shadow-sm`/`--shadow-md` pair (different opacities for light vs. dark —
+  dark backgrounds need stronger shadows to read as elevated), and a radius
+  scale (`--radius-sm/md/lg`). Renamed `--watch-bg`/`--watch-fg` →
+  `--watch-soft`/`--watch` and added `--danger-soft` to match the naming
+  convention (confirmed via grep that no `.tsx` file references CSS variables
+  directly — plain CSS only — so the rename was safe).
+- **Typography** — real `h1`/`h2`/`h3` sizing/weight/line-height/letter-
+  spacing for the first time. Kept the system-ui font stack (no web font, no
+  network fetch at build — matches the earlier decision to drop Geist).
+- **Interactive states** — every button/input/row/badge gets a ~150ms
+  transition plus real hover/active/focus-visible treatment (buttons shade +
+  lift on hover, `.person-row` border brightens on hover, inputs get a
+  color-ring focus state replacing the plain default outline).
+- **Elevation** — `.card`, `.person-row`, `.modal-card`, `.badge.achieved`
+  pick up shadows and the new radius scale instead of flat borders alone; the
+  banned modal's overlay gets `backdrop-filter: blur(2px)`.
+- **`.dense` scope** — new Reports-only rules (smaller `h2`, tighter
+  `.person-row`/`.stat`/input/button sizing) that only apply inside
+  `main.dense`. Every other page — People, check-in, profile, all forms,
+  login — is completely unaffected; still full touch-target sizing per
+  CLAUDE.md's front-desk requirement.
+
+### Verified
+
+`npm test` (38/38, unaffected — no logic touched), `tsc --noEmit`, `npm run
+build` all clean. Full Playwright screenshot pass in both light and dark
+(`page.emulateMedia`) across login (incl. a forced focus state), People empty
+state, People search results (incl. hover state), a fully-populated profile
+(badges, rewards, active membership, stats — Vera), the banned blocking modal
+(Bob), the watch banner (Wendy), the new-person form, and Reports — plus a
+390px mobile-width pass on the profile and Reports pages. Confirmed: readable
+heading hierarchy for the first time, visible hover/focus feedback, watch/
+danger/badge contrast holds in both themes, the Reports density difference is
+clearly visible next to the full-size People/profile pages, no layout breakage
+at mobile width, banned modal correctly blocks interaction with a blurred
+backdrop. One console warning (hydration mismatch from a `caret-color`
+attribute injected by Chromium/Playwright automation on the login inputs) is
+unrelated to this change — confirmed via grep that `caret-color` doesn't
+appear anywhere in the new CSS.

@@ -120,9 +120,32 @@ not bundled into the reward tiers.
 ## Explicitly out of scope for v1 (do not build)
 
 - Shift signup, SignUpGenius replacement, Slack integration
-- The app sending email (exports only; email is handled externally)
+- The app sending email — with exactly one deliberate post-v1 exception: the
+  reviewed, one-click lapsed-member renewal notice (see "Lapsed-member emails"
+  below). No other email of any kind; bulk/marketing email stays external via
+  the AI-friendly export.
 - Member self-service portal
 - Multi-organization support (keep code clean enough to add later, but do not build it)
+
+## Lapsed-member emails
+
+One email type only: a plain-text renewal notice to members whose latest
+membership expired at least `LAPSE_GRACE_DAYS` (7, tunable in
+`lib/lapse-emails.ts`) days ago. **Not automatic** — the queue is computed live
+on `/reports` ("Lapsed-Member Emails" section) and nothing sends until a site
+lead clicks Send; there is no cron/scheduler anywhere. Skips people with no
+email, `email_opt_out = 1`, or an active `banned` flag. Once per lapse, ever:
+sends are recorded in `lapse_emails` with `UNIQUE(person_id,
+membership_end_date)`, so re-clicking can't double-email and a renew-then-lapse
+-again correctly earns a new notice. Failed sends are NOT recorded — they stay
+queued for retry. Template lives in `renderLapseEmail()` — edit freely.
+
+Sending goes through `lib/email.ts`'s `sendEmail()` (Resend API via plain
+fetch, no SDK). **Currently in dry-run mode**: until `RESEND_API_KEY` +
+`EMAIL_FROM` are set, sends are logged to the server console and recorded as
+`dry_run` — the whole flow works, no email leaves. To go live: decide the
+provider question (co-op domain + Resend, or swap ~20 lines in `lib/email.ts`
+for Gmail SMTP), then set the env vars on Render.
 
 ## Reporting & export (Phase 5)
 

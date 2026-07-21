@@ -28,6 +28,8 @@ npm run dev
 | `AUTH_PASSWORD` | Shared login password |
 | `SESSION_SECRET` | Random string used to sign the session cookie (e.g. `openssl rand -hex 32`) |
 | `DATABASE_PATH` | Optional. SQLite file path; defaults to `./bikecoop.db` |
+| `RESEND_API_KEY` | Optional. Enables real sending of lapsed-member renewal emails; without it, sends are dry-run (logged, not sent) |
+| `EMAIL_FROM` | Sender for renewal emails, e.g. `St. Pete Bike Coop <members@example.org>` (required only with `RESEND_API_KEY`) |
 
 The database file is created and migrated automatically on first request
 (`db/schema.sql` + the idempotent migrations in `lib/db.ts`). The local dev

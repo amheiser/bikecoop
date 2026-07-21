@@ -158,7 +158,7 @@ export function clearSampleData(): number {
   if (ids.length === 0) return 0
 
   const placeholders = ids.map(() => '?').join(',')
-  for (const table of ['visits', 'memberships', 'flags', 'notes', 'reward_redemptions']) {
+  for (const table of ['visits', 'memberships', 'flags', 'notes', 'reward_redemptions', 'lapse_emails']) {
     db.prepare(`DELETE FROM ${table} WHERE person_id IN (${placeholders})`).run(...ids)
   }
   db.prepare(`DELETE FROM people WHERE id IN (${placeholders})`).run(...ids)

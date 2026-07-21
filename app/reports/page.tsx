@@ -5,6 +5,8 @@ import { getLapsedPeople } from '@/lib/memberships'
 import { getVolunteerRoster, getCurrentMilestone } from '@/lib/hours'
 import { seedSampleDataAction, clearSampleDataAction } from './actions'
 import { ImportForm } from './import-form'
+import { LapseEmailForm } from './lapse-email-form'
+import { getLapseEmailQueue, getRecentLapseEmails, LAPSE_GRACE_DAYS } from '@/lib/lapse-emails'
 
 export default async function ReportsPage({
   searchParams,
@@ -27,9 +29,11 @@ export default async function ReportsPage({
   const metrics = getReportMetrics(period)
   const lapsed = getLapsedPeople()
   const volunteers = getVolunteerRoster()
+  const emailQueue = getLapseEmailQueue()
+  const recentLapseEmails = getRecentLapseEmails()
 
   return (
-    <main>
+    <main className="dense">
       <div className="page-header">
         <h1>Reports</h1>
       </div>
@@ -134,6 +138,54 @@ export default async function ReportsPage({
           ))}
           {volunteers.length === 0 && <p className="muted">No volunteers yet.</p>}
         </ul>
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Lapsed-Member Emails</h2>
+        <p className="muted">
+          Renewal notices for members whose membership expired at least {LAPSE_GRACE_DAYS} days
+          ago. One email per lapse, ever — re-sending is impossible. People with no email,
+          who opted out of email, or who are banned are skipped automatically. Nothing sends
+          until you click.
+        </p>
+        <ul className="person-list">
+          {emailQueue.map((person) => (
+            <li key={person.id} className="person-row">
+              <span className="name">
+                <Link href={`/people/${person.id}`}>
+                  {person.first_name} {person.last_name}
+                </Link>
+              </span>
+              <span className="muted">
+                {person.email} · expired {person.latest_end_date}
+              </span>
+            </li>
+          ))}
+          {emailQueue.length === 0 && <p className="muted">No one is due a renewal notice.</p>}
+        </ul>
+        <LapseEmailForm queueCount={emailQueue.length} />
+        {recentLapseEmails.length > 0 && (
+          <>
+            <h3 style={{ marginTop: '1.5rem' }}>Recently sent</h3>
+            <ul className="visit-list">
+              {recentLapseEmails.map((entry) => (
+                <li key={entry.id}>
+                  <Link href={`/people/${entry.person_id}`}>
+                    {entry.first_name} {entry.last_name}
+                  </Link>
+                  {' — for lapse on '}
+                  {entry.membership_end_date}
+                  {entry.status === 'dry_run' && ' · dry run'}
+                  <span className="muted">
+                    {' · '}
+                    {entry.sent_at}
+                    {entry.logged_by && ` · by ${entry.logged_by}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       <section style={{ marginTop: '2rem' }}>

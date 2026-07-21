@@ -83,6 +83,23 @@ CREATE TABLE IF NOT EXISTS reward_redemptions (
 
 CREATE INDEX IF NOT EXISTS idx_reward_redemptions_person ON reward_redemptions (person_id);
 
+-- One row per lapsed-membership notice actually sent (or dry-run). The
+-- UNIQUE on (person, end_date) is the once-per-lapse guarantee: a renewal
+-- followed by a new lapse has a new end_date, so a new notice is allowed;
+-- re-clicking Send can never double-email anyone. Failures are NOT recorded
+-- here — a failed send stays in the queue for retry.
+CREATE TABLE IF NOT EXISTS lapse_emails (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  person_id INTEGER NOT NULL REFERENCES people (id),
+  membership_end_date TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('sent', 'dry_run')),
+  logged_by TEXT,
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (person_id, membership_end_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lapse_emails_sent_at ON lapse_emails (sent_at);
+
 -- Tracks one-off data-fix migrations (see lib/db.ts) so they run exactly
 -- once per database, distinct from the schema/column changes above.
 CREATE TABLE IF NOT EXISTS schema_migrations (
