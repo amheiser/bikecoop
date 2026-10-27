@@ -6,6 +6,6 @@
 - Site lead should be shop lead
 - I would eventually like to be able to log into this interface from the regular website.
 - logo should be st pete bike coop logo
-- There should be a Shift tab that has the sign in stuff
+- The Shift tab should handle check-in and show separate volunteer and visitor tiles for people currently in the shop. Tiles should support checking people out or removing their visit, and people should be movable between volunteer and visitor groups with confirmation.
 - People tab should manage the users and their settings
-- 
+- There should also be an inventory tab that allows us to track new bikes that get donated and sold.

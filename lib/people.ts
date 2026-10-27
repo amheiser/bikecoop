@@ -27,8 +27,13 @@ export type Visit = {
   person_id: number
   visit_date: string
   is_volunteer: number
+  checked_out: number
   logged_by: string | null
   created_at: string
+}
+
+export type CheckedInPerson = Person & {
+  is_volunteer_visit: number
 }
 
 export type PersonInput = {
@@ -56,9 +61,55 @@ export function searchPeople(query: string): Person[] {
     .prepare(
       `SELECT * FROM people
        WHERE (first_name || ' ' || last_name) LIKE ? OR email LIKE ?
-       ORDER BY last_name, first_name LIMIT 50`
+       ORDER BY last_name, first_name LIMIT 10`
     )
     .all(term, term) as Person[]
+}
+
+export function getPeopleCheckedInToday(): CheckedInPerson[] {
+  return db
+    .prepare(
+      `SELECT people.*, visits.is_volunteer AS is_volunteer_visit
+       FROM visits
+       JOIN people ON people.id = visits.person_id
+       WHERE visits.visit_date = ? AND visits.checked_out = 0
+       ORDER BY people.last_name, people.first_name`
+    )
+    .all(todayISO()) as CheckedInPerson[]
+}
+
+export function promoteVisitToVolunteer(personId: number): boolean {
+  const result = db
+    .prepare(
+      'UPDATE visits SET is_volunteer = 1 WHERE person_id = ? AND visit_date = ? AND checked_out = 0 AND is_volunteer = 0'
+    )
+    .run(personId, todayISO())
+  return result.changes === 1
+}
+
+export function changeVisitToVisitor(personId: number): boolean {
+  const result = db
+    .prepare(
+      'UPDATE visits SET is_volunteer = 0 WHERE person_id = ? AND visit_date = ? AND checked_out = 0 AND is_volunteer = 1'
+    )
+    .run(personId, todayISO())
+  return result.changes === 1
+}
+
+export function checkOutPersonToday(personId: number): boolean {
+  const result = db
+    .prepare(
+      'UPDATE visits SET checked_out = 1 WHERE person_id = ? AND visit_date = ? AND checked_out = 0'
+    )
+    .run(personId, todayISO())
+  return result.changes === 1
+}
+
+export function deleteVisitToday(personId: number): boolean {
+  const result = db
+    .prepare('DELETE FROM visits WHERE person_id = ? AND visit_date = ? AND checked_out = 0')
+    .run(personId, todayISO())
+  return result.changes === 1
 }
 
 export function getPerson(id: number): Person | undefined {
@@ -133,10 +184,11 @@ export function checkIn(input: { personId: number; isVolunteer: boolean; loggedB
   // MAX() so a plain re-check-in the same evening never downgrades an
   // already-logged volunteer session (which would silently erase 2.5 hours).
   db.prepare(
-    `INSERT INTO visits (person_id, visit_date, is_volunteer, logged_by)
-     VALUES (?, ?, ?, ?)
+    `INSERT INTO visits (person_id, visit_date, is_volunteer, checked_out, logged_by)
+     VALUES (?, ?, ?, 0, ?)
      ON CONFLICT (person_id, visit_date) DO UPDATE SET
        is_volunteer = MAX(is_volunteer, excluded.is_volunteer),
+       checked_out = 0,
        logged_by = excluded.logged_by`
   ).run(input.personId, todayISO(), input.isVolunteer ? 1 : 0, input.loggedBy)
 }
